@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-  <style>* {box-sizing:border-box;margin:0;padding:0} body {font-family:system-ui,sans-serif;background:#F0F7F6} #root {min-height:100vh}</style>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#F0F7F6}#root{min-height:100vh}</style>
 </head>
 <body>
   <div id="root">
@@ -194,7 +194,57 @@ function ProvModal({sector, ots, onClose}){
 }
 
 
-function DistribuidoresTab({data, sheetDistri}){
+function ConfigTab({sheetOts, sheetDistri, onSave}){
+  const [urlOts, setUrlOts] = React.useState(sheetOts||'');
+  const [urlDistri, setUrlDistri] = React.useState(sheetDistri||'');
+  const [saved, setSaved] = React.useState(false);
+
+  function toExport(url){
+    const m=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
+    if(m)return 'https://docs.google.com/spreadsheets/d/'+m[1]+'/export?format=csv&gid='+m[2];
+    const m2=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if(m2)return 'https://docs.google.com/spreadsheets/d/'+m2[1]+'/export?format=csv';
+    return url;
+  }
+  function handleSave(){
+    const o=toExport(urlOts.trim());const d=toExport(urlDistri.trim());
+    try{localStorage.setItem('alleata_ots',o);localStorage.setItem('alleata_distri',d);}catch(e){}
+    onSave(o,d);setSaved(true);setTimeout(()=>setSaved(false),2500);
+  }
+  const inp={width:'100%',padding:'11px 14px',borderRadius:10,border:'2px solid #e2e8f0',fontSize:12,fontFamily:'inherit',outline:'none',marginTop:6,color:'#0A2540'};
+  return(
+    <div style={{maxWidth:660,margin:'36px auto',padding:'0 20px'}}>
+      <div style={{background:'#fff',borderRadius:20,padding:'32px',boxShadow:'0 2px 20px rgba(0,0,0,.08)'}}>
+        <div style={{fontSize:20,fontWeight:900,color:'#0A2540',marginBottom:4}}>⚙️ Configuración</div>
+        <div style={{fontSize:13,color:'#94a3b8',marginBottom:28}}>Pegá los links de tus Google Sheets. Se guardan en el navegador.</div>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0A2540',letterSpacing:.5}}>PLANILLA DE ÓRDENES DE TRABAJO</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Link de la hoja con las desinstalaciones</div>
+          <input value={urlOts} onChange={e=>setUrlOts(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
+        </div>
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0A2540',letterSpacing:.5}}>PLANILLA DE DISTRIBUIDORES</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Link de la hoja con los distribuidores</div>
+          <input value={urlDistri} onChange={e=>setUrlDistri(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
+        </div>
+        <button onClick={handleSave} style={{width:'100%',background:saved?'#10b981':'linear-gradient(135deg,#00897B,#00BFA5)',color:'#fff',border:'none',borderRadius:12,padding:'13px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+          {saved?'✅ Guardado — recargando...':'💾 Guardar y actualizar datos'}
+        </button>
+        <div style={{marginTop:24,background:'#F0F7F6',borderRadius:12,padding:'16px'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#00695C',marginBottom:10}}>📋 CÓMO USAR</div>
+          {[['1','Abrí tu Google Sheets'],['2','Archivo → Compartir → Cualquier persona con el vínculo puede ver'],['3','Copiá el link y pegalo en el campo'],['4','Hacé clic en Guardar y actualizar']].map(([n,t])=>(
+            <div key={n} style={{display:'flex',gap:10,marginBottom:8,alignItems:'flex-start'}}>
+              <span style={{background:'#00897B',color:'#fff',borderRadius:'50%',width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{n}</span>
+              <span style={{fontSize:12,color:'#475569',lineHeight:1.5,paddingTop:2}}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DistribuidoresTab({data,sheetDistri}){
   const [distris,setDistris]=useState([]);
   const [radios,setRadios]=useState({});
   const [loading,setLoading]=useState(true);
@@ -223,8 +273,7 @@ function DistribuidoresTab({data, sheetDistri}){
       const r={};mapped.forEach(d=>{r[d.id]=d.radio;});setRadios(r);
       setLoading(false);
     }).catch(()=>setLoading(false));
-  },[]);
-
+  },[sheetDistri]);
   function getOts(d){
     const radio=radios[d.id]??d.radio;
     if(!d.lat)return[];
@@ -365,33 +414,7 @@ function DistribuidoresTab({data, sheetDistri}){
 
 
 function App() {
-  // Load sheet URLs from localStorage or use defaults
-  const [sheetOts, setSheetOts] = useState(()=>{
-    try{const s=localStorage.getItem('alleata_sheet_ots');return s||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678';}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678';}
-  });
-  const [sheetDistri, setSheetDistri] = useState(()=>{
-    try{const s=localStorage.getItem('alleata_sheet_distri');return s||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751';}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751';}
-  });
-
-  function handleConfigSave(urlOts, urlDistri){
-    function toExport(url){
-      const m=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
-      if(m)return `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${m[2]}`;
-      const m2=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-      if(m2)return `https://docs.google.com/spreadsheets/d/${m2[1]}/export?format=csv`;
-      return url;
-    }
-    const csvOts=toExport(urlOts);
-    const csvDistri=toExport(urlDistri);
-    try{localStorage.setItem('alleata_sheet_ots',csvOts);localStorage.setItem('alleata_sheet_distri',csvDistri);}catch(e){}
-    setSheetOts(csvOts);
-    setSheetDistri(csvDistri);
-    setSyncStatus('loading');
-    setData([]);
-    setActiveTab('dashboard');
-  }
-
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(FALLBACK_DATA);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
   const [estadoF, setEstadoF] = useState('Todos');
@@ -438,7 +461,7 @@ function App() {
           setData(mapped); setSyncStatus('live');
         } else setSyncStatus('fallback');
       }).catch(()=>setSyncStatus('fallback'));
-  },[]);
+  },[sheetOts]);
 
   const logisticas = useMemo(()=>['Todas',...Array.from(new Set(data.map(r=>r.Logistica).filter(Boolean))).sort()],[data]);
 
@@ -498,7 +521,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}><div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}><span style={{fontSize:15,fontWeight:800}}>Gestión de Desinstalaciones</span><span style={{fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px',flexShrink:0}}>v2.1 · Mar 2026</span></div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>Marzo 2026</div></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.1</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
@@ -788,96 +811,4 @@ function App() {
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
-</html
-function ConfigTab({sheetOts, sheetDistri, onSave}){
-  const [urlOts, setUrlOts] = React.useState(sheetOts);
-  const [urlDistri, setUrlDistri] = React.useState(sheetDistri);
-  const [saved, setSaved] = React.useState(false);
-
-  function handleSave(){
-    onSave(urlOts.trim(), urlDistri.trim());
-    setSaved(true);
-    setTimeout(()=>setSaved(false), 2500);
-  }
-
-  function extractCsv(url){
-    // Convert Google Sheets share URL to CSV export URL
-    const m = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
-    if(m) return `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${m[2]}`;
-    const m2 = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-    if(m2) return `https://docs.google.com/spreadsheets/d/${m2[1]}/export?format=csv`;
-    return url;
-  }
-
-  const inputStyle = {
-    width:'100%', padding:'10px 14px', borderRadius:10, border:'2px solid #e2e8f0',
-    fontSize:13, fontFamily:'inherit', outline:'none', marginTop:6,
-    transition:'border .15s'
-  };
-
-  return(
-    <div style={{maxWidth:680, margin:'40px auto', padding:'0 20px'}}>
-      <div style={{background:'#fff', borderRadius:20, padding:'32px', boxShadow:'0 2px 20px rgba(0,0,0,.08)'}}>
-        <div style={{fontSize:20, fontWeight:900, color:'#0A2540', marginBottom:6}}>⚙️ Configuración</div>
-        <div style={{fontSize:13, color:'#94a3b8', marginBottom:28}}>Pegá los links de tus Google Sheets. La app los lee automáticamente.</div>
-
-        <div style={{marginBottom:22}}>
-          <div style={{fontSize:12, fontWeight:700, color:'#0A2540', letterSpacing:.5}}>PLANILLA DE OTs (DESINSTALACIONES)</div>
-          <div style={{fontSize:11, color:'#94a3b8', marginTop:2, marginBottom:4}}>Pegá el link de la hoja con las órdenes de trabajo</div>
-          <input
-            value={urlOts}
-            onChange={e=>setUrlOts(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/..."
-            style={inputStyle}
-            onFocus={e=>e.target.style.borderColor='#00BFA5'}
-            onBlur={e=>e.target.style.borderColor='#e2e8f0'}
-          />
-          {urlOts && extractCsv(urlOts)!==urlOts && (
-            <div style={{fontSize:11, color:'#00897B', marginTop:4}}>✓ Link válido detectado</div>
-          )}
-        </div>
-
-        <div style={{marginBottom:28}}>
-          <div style={{fontSize:12, fontWeight:700, color:'#0A2540', letterSpacing:.5}}>PLANILLA DE DISTRIBUIDORES</div>
-          <div style={{fontSize:11, color:'#94a3b8', marginTop:2, marginBottom:4}}>Pegá el link de la hoja con los distribuidores</div>
-          <input
-            value={urlDistri}
-            onChange={e=>setUrlDistri(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/..."
-            style={inputStyle}
-            onFocus={e=>e.target.style.borderColor='#00BFA5'}
-            onBlur={e=>e.target.style.borderColor='#e2e8f0'}
-          />
-          {urlDistri && extractCsv(urlDistri)!==urlDistri && (
-            <div style={{fontSize:11, color:'#00897B', marginTop:4}}>✓ Link válido detectado</div>
-          )}
-        </div>
-
-        <button onClick={handleSave}
-          style={{width:'100%', background:'linear-gradient(135deg,#00897B,#00BFA5)', color:'#fff', border:'none', borderRadius:12, padding:'13px', fontSize:14, fontWeight:700, cursor:'pointer'}}>
-          {saved ? '✅ Guardado — recargando datos...' : '💾 Guardar y actualizar datos'}
-        </button>
-
-        <div style={{marginTop:24, background:'#F0F7F6', borderRadius:12, padding:'16px'}}>
-          <div style={{fontSize:11, fontWeight:700, color:'#00695C', marginBottom:10}}>📋 INSTRUCCIONES</div>
-          {[
-            ['1.', 'Abrí tu Google Sheets'],
-            ['2.', 'Archivo → Compartir → "Cualquier persona con el vínculo puede ver"'],
-            ['3.', 'Copiá el link de la planilla y pegalo en el campo correspondiente'],
-            ['4.', 'Hacé clic en "Guardar y actualizar datos"']
-          ].map(([n,t])=>(
-            <div key={n} style={{display:'flex',gap:10,marginBottom:8,alignItems:'flex-start'}}>
-              <span style={{background:'#00897B',color:'#fff',borderRadius:6,padding:'1px 7px',fontSize:11,fontWeight:700,flexShrink:0}}>{n}</span>
-              <span style={{fontSize:12,color:'#475569',lineHeight:1.5}}>{t}</span>
-            </div>
-          ))}
-          <div style={{marginTop:12,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #80CBC4'}}>
-            <div style={{fontSize:11,fontWeight:700,color:'#00695C',marginBottom:4}}>⚡ TIP</div>
-            <div style={{fontSize:11,color:'#64748b'}}>Los links se guardan en tu navegador — no necesitás reingresarlos cada vez.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
->
+</html>
