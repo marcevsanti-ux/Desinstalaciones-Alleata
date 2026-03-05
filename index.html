@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -194,7 +194,7 @@ function ProvModal({sector, ots, onClose}){
 }
 
 
-function DistribuidoresTab({data}){
+function DistribuidoresTab({data, sheetDistri}){
   const [distris,setDistris]=useState([]);
   const [radios,setRadios]=useState({});
   const [loading,setLoading]=useState(true);
@@ -203,7 +203,7 @@ function DistribuidoresTab({data}){
   const [tmpRadio,setTmpRadio]=useState('');
 
   useEffect(()=>{
-    fetch(SHEET_DISTRI).then(r=>r.text()).then(csv=>{
+    fetch(sheetDistri||SHEET_DISTRI).then(r=>r.text()).then(csv=>{
       const rows=parseCSV(csv);
       const mapped=rows.filter(r=>(r.Nombre||r.nombre||'').trim()).map((r,i)=>{
         const nombre=(r.Nombre||r.nombre||'').trim();
@@ -365,6 +365,32 @@ function DistribuidoresTab({data}){
 
 
 function App() {
+  // Load sheet URLs from localStorage or use defaults
+  const [sheetOts, setSheetOts] = useState(()=>{
+    try{const s=localStorage.getItem('alleata_sheet_ots');return s||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678';}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678';}
+  });
+  const [sheetDistri, setSheetDistri] = useState(()=>{
+    try{const s=localStorage.getItem('alleata_sheet_distri');return s||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751';}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751';}
+  });
+
+  function handleConfigSave(urlOts, urlDistri){
+    function toExport(url){
+      const m=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
+      if(m)return `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${m[2]}`;
+      const m2=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if(m2)return `https://docs.google.com/spreadsheets/d/${m2[1]}/export?format=csv`;
+      return url;
+    }
+    const csvOts=toExport(urlOts);
+    const csvDistri=toExport(urlDistri);
+    try{localStorage.setItem('alleata_sheet_ots',csvOts);localStorage.setItem('alleata_sheet_distri',csvDistri);}catch(e){}
+    setSheetOts(csvOts);
+    setSheetDistri(csvDistri);
+    setSyncStatus('loading');
+    setData([]);
+    setActiveTab('dashboard');
+  }
+
   const [data, setData] = useState([]);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
@@ -378,7 +404,7 @@ function App() {
   const PAGE = 50;
 
   useEffect(() => {
-    fetch(SHEET_CSV)
+    fetch(sheetOts)
       .then(r=>r.text())
       .then(csv=>{
         const lines=csv.split('\n').filter(l=>l.trim());
@@ -489,7 +515,7 @@ function App() {
           </div>
           {/* Tab Nav */}
           <div style={{display:'flex',gap:8,marginTop:14}}>
-            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores']].map(([t,label])=>(
+            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['config','⚙️ Config']].map(([t,label])=>(
               <button key={t} onClick={()=>setActiveTab(t)} style={{
                 padding:'8px 18px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,
                 background:activeTab===t?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)',
@@ -761,4 +787,87 @@ function App() {
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
-</html>
+</html
+function ConfigTab({sheetOts, sheetDistri, onSave}){
+  const [urlOts, setUrlOts] = React.useState(sheetOts);
+  const [urlDistri, setUrlDistri] = React.useState(sheetDistri);
+  const [saved, setSaved] = React.useState(false);
+
+  function handleSave(){
+    onSave(urlOts.trim(), urlDistri.trim());
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2500);
+  }
+
+  function extractCsv(url){
+    // Convert Google Sheets share URL to CSV export URL
+    const m = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
+    if(m) return `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${m[2]}`;
+    const m2 = url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if(m2) return `https://docs.google.com/spreadsheets/d/${m2[1]}/export?format=csv`;
+    return url;
+  }
+
+  const inputStyle = {
+    width:'100%', padding:'10px 14px', borderRadius:10, border:'2px solid #e2e8f0',
+    fontSize:13, fontFamily:'inherit', outline:'none', marginTop:6,
+    transition:'border .15s'
+  };
+
+  return(
+    <div style={{maxWidth:680, margin:'40px auto', padding:'0 20px'}}>
+      <div style={{background:'#fff', borderRadius:20, padding:'32px', boxShadow:'0 2px 20px rgba(0,0,0,.08)'}}>
+        <div style={{fontSize:20, fontWeight:900, color:'#0A2540', marginBottom:6}}>⚙️ Configuración</div>
+        <div style={{fontSize:13, color:'#94a3b8', marginBottom:28}}>Pegá los links de tus Google Sheets. La app los lee automáticamente.</div>
+
+        <div style={{marginBottom:22}}>
+          <div style={{fontSize:12, fontWeight:700, color:'#0A2540', letterSpacing:.5}}>PLANILLA DE OTs (DESINSTALACIONES)</div>
+          <div style={{fontSize:11, color:'#94a3b8', marginTop:2, marginBottom:4}}>Pegá el link de la hoja con las órdenes de trabajo</div>
+          <input
+            value={urlOts}
+            onChange={e=>setUrlOts(e.target.value)}
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            style={inputStyle}
+            onFocus={e=>e.target.style.borderColor='#00BFA5'}
+            onBlur={e=>e.target.style.borderColor='#e2e8f0'}
+          />
+          {urlOts && extractCsv(urlOts)!==urlOts && (
+            <div style={{fontSize:11, color:'#00897B', marginTop:4}}>✓ Link válido detectado</div>
+          )}
+        </div>
+
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:12, fontWeight:700, color:'#0A2540', letterSpacing:.5}}>PLANILLA DE DISTRIBUIDORES</div>
+          <div style={{fontSize:11, color:'#94a3b8', marginTop:2, marginBottom:4}}>Pegá el link de la hoja con los distribuidores</div>
+          <input
+            value={urlDistri}
+            onChange={e=>setUrlDistri(e.target.value)}
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            style={inputStyle}
+            onFocus={e=>e.target.style.borderColor='#00BFA5'}
+            onBlur={e=>e.target.style.borderColor='#e2e8f0'}
+          />
+          {urlDistri && extractCsv(urlDistri)!==urlDistri && (
+            <div style={{fontSize:11, color:'#00897B', marginTop:4}}>✓ Link válido detectado</div>
+          )}
+        </div>
+
+        <button onClick={handleSave}
+          style={{width:'100%', background:'linear-gradient(135deg,#00897B,#00BFA5)', color:'#fff', border:'none', borderRadius:12, padding:'13px', fontSize:14, fontWeight:700, cursor:'pointer'}}>
+          {saved ? '✅ Guardado — recargando datos...' : '💾 Guardar y actualizar datos'}
+        </button>
+
+        <div style={{marginTop:24, background:'#F0F7F6', borderRadius:12, padding:'16px'}}>
+          <div style={{fontSize:11, fontWeight:700, color:'#00695C', marginBottom:8}}>📋 INSTRUCCIONES</div>
+          <div style={{fontSize:12, color:'#475569', lineHeight:1.8}}>
+            1. Abrí tu Google Sheets<br/>
+            2. <b>Archivo → Compartir → Cualquier persona con el vínculo puede ver</b><br/>
+            3. Copiá el link y pegalo acá<br/>
+            4. Hacé clic en "Guardar y actualizar"
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+>
