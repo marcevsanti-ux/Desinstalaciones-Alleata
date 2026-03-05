@@ -498,7 +498,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}><div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}><span style={{fontSize:15,fontWeight:800}}>Gestión de Desinstalaciones</span><span style={{fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px',flexShrink:0}}>v2.1 · Mar 2026</span></div><div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>Marzo 2026</div></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
@@ -535,7 +535,8 @@ function App() {
         </div>
       </div>
 
-      {activeTab==='distribuidores' && <DistribuidoresTab data={filtered} cpCoords={CP_COORDS}/>}
+      {activeTab==='distribuidores' && <DistribuidoresTab data={filtered} sheetDistri={sheetDistri}/>}
+      {activeTab==='config' && <ConfigTab sheetOts={sheetOts} sheetDistri={sheetDistri} onSave={handleConfigSave}/>}
       {activeTab==='dashboard' && <div style={{display:'none'}}/>}
       <div style={{maxWidth:1380,margin:'0 auto',padding:'22px 20px',display: activeTab==='dashboard' ? 'grid' : 'none',gridTemplateColumns:'360px 1fr',gap:20,alignItems:'start'}}>
 
@@ -858,12 +859,21 @@ function ConfigTab({sheetOts, sheetDistri, onSave}){
         </button>
 
         <div style={{marginTop:24, background:'#F0F7F6', borderRadius:12, padding:'16px'}}>
-          <div style={{fontSize:11, fontWeight:700, color:'#00695C', marginBottom:8}}>📋 INSTRUCCIONES</div>
-          <div style={{fontSize:12, color:'#475569', lineHeight:1.8}}>
-            1. Abrí tu Google Sheets<br/>
-            2. <b>Archivo → Compartir → Cualquier persona con el vínculo puede ver</b><br/>
-            3. Copiá el link y pegalo acá<br/>
-            4. Hacé clic en "Guardar y actualizar"
+          <div style={{fontSize:11, fontWeight:700, color:'#00695C', marginBottom:10}}>📋 INSTRUCCIONES</div>
+          {[
+            ['1.', 'Abrí tu Google Sheets'],
+            ['2.', 'Archivo → Compartir → "Cualquier persona con el vínculo puede ver"'],
+            ['3.', 'Copiá el link de la planilla y pegalo en el campo correspondiente'],
+            ['4.', 'Hacé clic en "Guardar y actualizar datos"']
+          ].map(([n,t])=>(
+            <div key={n} style={{display:'flex',gap:10,marginBottom:8,alignItems:'flex-start'}}>
+              <span style={{background:'#00897B',color:'#fff',borderRadius:6,padding:'1px 7px',fontSize:11,fontWeight:700,flexShrink:0}}>{n}</span>
+              <span style={{fontSize:12,color:'#475569',lineHeight:1.5}}>{t}</span>
+            </div>
+          ))}
+          <div style={{marginTop:12,padding:'10px 12px',background:'#fff',borderRadius:8,border:'1px solid #80CBC4'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#00695C',marginBottom:4}}>⚡ TIP</div>
+            <div style={{fontSize:11,color:'#64748b'}}>Los links se guardan en tu navegador — no necesitás reingresarlos cada vez.</div>
           </div>
         </div>
       </div>
