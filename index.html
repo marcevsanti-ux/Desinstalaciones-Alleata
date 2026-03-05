@@ -414,6 +414,9 @@ function DistribuidoresTab({data,sheetDistri}){
 
 
 function App() {
+  const [sheetOts,setSheetOts]=useState(()=>{try{return localStorage.getItem('alleata_ots')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}});
+  const [sheetDistri,setSheetDistri]=useState(()=>{try{return localStorage.getItem('alleata_distri')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}});
+  function handleConfigSave(o,d){setSheetOts(o);setSheetDistri(d);setSyncStatus('loading');setData([]);setActiveTab('dashboard');}
   const [data,setData]=useState([]);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
