@@ -1,24 +1,32 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Desinstalaciones · Marzo 2026</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Desinstalaciones · Alleata · Marzo 2026</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #eef1f7; }
     #root { min-height: 100vh; }
+    #loading { display:flex;align-items:center;justify-content:center;height:100vh; }
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
+  <div id="root">
+    <div id="loading">
+      <div style="text-align:center;color:#64748b">
+        <div style="font-size:48px;margin-bottom:16px">⏳</div>
+        <div style="font-size:18px;font-weight:700">Cargando aplicación...</div>
+        <div style="font-size:13px;margin-top:8px;color:#94a3b8">Conectando con Google Sheets</div>
+      </div>
+    </div>
+  </div>
+  <script type="text/babel" data-presets="react,env">
     const { useState, useMemo, useEffect } = React;
-
-
+    
 
 const SHEET_CSV = "https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678";
 const SHEET_LINK = "https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/edit";
@@ -439,7 +447,7 @@ function DistribuidoresTab({ data, cpCoords }) {
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
-export default function App() {
+function App() {
   const [data, setData] = useState(FALLBACK_DATA);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
@@ -830,8 +838,8 @@ export default function App() {
   );
 }
 
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
     root.render(<App/>);
   </script>
 </body>
