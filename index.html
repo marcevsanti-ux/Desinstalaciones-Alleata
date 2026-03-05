@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -365,7 +365,7 @@ function DistribuidoresTab({data}){
 
 
 function App() {
-  const [data, setData] = useState(FALLBACK_DATA);
+  const [data, setData] = useState([]);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
   const [estadoF, setEstadoF] = useState('Todos');
