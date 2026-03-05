@@ -414,7 +414,7 @@ function DistribuidoresTab({data,sheetDistri}){
 
 
 function App() {
-  const [data, setData] = useState(FALLBACK_DATA);
+  const [data,setData]=useState([]);
   const [syncStatus, setSyncStatus] = useState('loading');
   const [selectedSector, setSelectedSector] = useState(null);
   const [estadoF, setEstadoF] = useState('Todos');
