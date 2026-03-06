@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Alleata · Portal Distribuidor</title>
+  <link rel="icon" href="https://alleata.com.ar/favicon.ico"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --teal: #00BFA5;
+      --teal-dark: #00897B;
+      --teal-deeper: #004D40;
+      --navy: #0A2540;
+      --bg: #F0F7F6;
+      --white: #ffffff;
+      --slate: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); min-height: 100vh; }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #0A2540 0%, #063D52 60%, #006B5E 100%);
+      padding: 20px 20px 0;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 24px rgba(0,0,0,.3);
+    }
+    .header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .header-logo { height: 28px; filter: brightness(0) invert(1); }
+    .header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.25); }
+    .header-title { color: #fff; font-size: 15px; font-weight: 800; }
+    .header-sub { color: rgba(255,255,255,.55); font-size: 11px; margin-top: 2px; }
+    .distri-badge {
+      margin-left: auto;
+      background: rgba(0,191,165,.2);
+      border: 1px solid rgba(0,191,165,.4);
+      color: #5eead4;
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .header-stats {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+      margin: 0 -20px;
+    }
+    .stat-pill {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+    .stat-pill:last-child { border-right: none; }
+    .stat-num { font-size: 20px; font-weight: 900; color: #fff; line-height: 1; }
+    .stat-lbl { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.45); letter-spacing: .8px; margin-top: 3px; }
+
+    /* FILTERS */
+    .filters {
+      padding: 14px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 99px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--slate);
+      transition: all .15s;
+    }
+    .filter-btn.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .search-box {
+      flex: 1; min-width: 140px;
+      padding: 7px 14px;
+      border-radius: 99px;
+      border: 2px solid var(--border);
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      color: var(--navy);
+    }
+    .search-box:focus { border-color: var(--teal); }
+
+    /* OT CARDS */
+    .ot-list { padding: 14px 14px 80px; display: flex; flex-direction: column; gap: 10px; }
+
+    .ot-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 2px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .ot-card.retirado { border-color: #10b981; }
+    .ot-card.visitado  { border-color: #3b82f6; }
+    .ot-card.no-encontrado { border-color: #ef4444; }
+
+    .ot-card-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .ot-num { font-size: 13px; font-weight: 900; color: var(--teal-dark); }
+    .ot-comercio { font-size: 15px; font-weight: 800; color: var(--navy); margin-top: 2px; line-height: 1.3; }
+    .ot-cuenta { font-size: 11px; color: var(--slate); margin-top: 2px; }
+
+    .ot-dist-badge {
+      background: #E0F2F1;
+      color: var(--teal-deeper);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .ot-info {
+      padding: 0 16px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .ot-info-item { display: flex; flex-direction: column; gap: 1px; }
+    .ot-info-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; letter-spacing: .6px; }
+    .ot-info-val { font-size: 12px; font-weight: 600; color: var(--navy); line-height: 1.3; }
+    .ot-info-val.full { grid-column: 1 / -1; }
+
+    .ot-obs {
+      margin: 0 16px 10px;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--slate);
+      line-height: 1.5;
+      border-left: 3px solid var(--teal);
+    }
+
+    /* ACTION BUTTONS */
+    .ot-actions {
+      padding: 10px 12px 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      border-top: 1px solid var(--border);
+      background: #fafbfc;
+    }
+    .action-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 6px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all .15s;
+      border: 2px solid transparent;
+    }
+    .action-btn .icon { font-size: 20px; line-height: 1; }
+    .action-btn.visitado-btn  { background: #dbeafe; color: #1d4ed8; }
+    .action-btn.noenc-btn     { background: #fee2e2; color: #dc2626; }
+    .action-btn.retirado-btn  { background: #d1fae5; color: #059669; }
+    .action-btn.active { border-color: currentColor; transform: scale(1.03); box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+
+    /* OBS INPUT */
+    .obs-input-wrap {
+      padding: 0 12px 12px;
+      background: #fafbfc;
+      display: none;
+    }
+    .obs-input-wrap.show { display: block; }
+    .obs-input {
+      width: 100%;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      resize: none;
+      outline: none;
+      color: var(--navy);
+    }
+    .obs-input:focus { border-color: var(--teal); }
+    .obs-confirm {
+      margin-top: 8px;
+      width: 100%;
+      background: var(--teal-dark);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--navy); color: #fff;
+      padding: 12px 22px; border-radius: 99px;
+      font-size: 13px; font-weight: 700;
+      box-shadow: 0 8px 30px rgba(0,0,0,.3);
+      z-index: 999;
+      opacity: 0; transition: opacity .3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 80px 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (min-width: 600px) {
+      .ot-list { max-width: 640px; margin: 0 auto; }
+      .filters { max-width: 640px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">Portal Distribuidor</div>
+      <div class="header-sub" id="header-sub">Cargando...</div>
+    </div>
+    <div class="distri-badge" id="distri-badge">...</div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">TOTAL</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-pend" style="color:#fbbf24">—</div><div class="stat-lbl">PENDIENTES</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-visit" style="color:#60a5fa">—</div><div class="stat-lbl">VISITADAS</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-ret" style="color:#34d399">—</div><div class="stat-lbl">RETIRADAS</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..."/>
+  <button class="filter-btn active" data-filter="todos">Todos</button>
+  <button class="filter-btn" data-filter="pendiente">Pendiente</button>
+  <button class="filter-btn" data-filter="visitado">Visitado</button>
+  <button class="filter-btn" data-filter="no-encontrado">No encontrado</button>
+  <button class="filter-btn" data-filter="retirado">Retirado</button>
+</div>
+
+<div id="content">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div style="font-weight:700;color:#475569;font-size:14px">Cargando tus OTs...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────────────────────────────
+// URL params: ?distri=NOMBRE_APELLIDO&sheet=SHEET_ID&gid=GID_ESTADOS
+// Example: ?distri=Enrique_Arquibola&sheet=1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY&gid=107031751
+
+const params = new URLSearchParams(location.search);
+const DISTRI_PARAM = params.get('distri') || '';
+const SHEET_ID = params.get('sheet') || '1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY';
+const GID_DISTRI = params.get('gid_distri') || '107031751';      // distributors sheet
+const GID_ESTADOS = params.get('gid_estados') || '';              // estados sheet (TBD)
+const GID_OTS = params.get('gid_ots') || '1843553678';            // OT main sheet
+
+const DISTRI_NAME = DISTRI_PARAM.replace(/_/g,' ');
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let allOts = [];
+let estados = {};   // { [OT_num]: { estado, obs, fecha } }
+let currentFilter = 'todos';
+let searchQ = '';
+
+// ─── UTILS ──────────────────────────────────────────────────────────────────
+function parseCSV(csv){
+  const lines = csv.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const heads = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line=>{
+    const vals=[]; let cur='', inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
+      else{cur+=ch;}
+    }
+    vals.push(cur.trim());
+    const o={};
+    heads.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});
+    return o;
+  });
+}
+
+function toast(msg, duration=2200){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), duration);
+}
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+
+// ─── CP COORDS (subset needed for distance) ─────────────────────────────────
+const CP_COORDS = {"1005":[-34.6037,-58.3816],"1014":[-34.526,-58.488],"1425":[-34.588,-58.42],"1604":[-34.476,-58.52],"1625":[-34.349,-58.797],"1629":[-34.458,-58.914],"1640":[-34.492,-58.509],"1650":[-34.567,-58.539],"1657":[-34.588,-58.658],"1663":[-34.539,-58.706],"1700":[-34.617,-58.557],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1714":[-34.659,-58.665],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1757":[-34.748,-58.597],"1805":[-34.847,-58.515],"1821":[-34.7,-58.405],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1875":[-34.705,-58.315],"1880":[-34.763,-58.208],"1886":[-34.836,-58.193],"1900":[-34.9205,-57.9536],"1984":[-34.995,-58.006],"2000":[-32.9468,-60.6393],"2800":[-34.098,-59.027],"2900":[-33.3347,-60.2117],"3000":[-31.6333,-60.7],"3100":[-31.7333,-60.5167],"3300":[-27.3671,-55.896],"3400":[-27.4806,-58.8341],"3500":[-27.4514,-58.9867],"3600":[-26.1775,-58.1781],"4000":[-26.8083,-65.2176],"4400":[-24.7821,-65.4232],"4600":[-24.1857,-65.2994],"5000":[-31.4135,-64.1811],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5500":[-32.8908,-68.8272],"5800":[-33.1232,-64.3493],"5900":[-32.4072,-63.2409],"6000":[-34.5667,-60.9167],"6700":[-34.5696,-59.1076],"7000":[-37.325,-59.1392],"7174":[-37.643,-57.706],"7300":[-36.7756,-59.8578],"7400":[-36.8921,-60.3224],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"8000":[-38.7183,-62.2663],"8300":[-38.9516,-68.0591],"8400":[-41.1335,-71.3103],"8500":[-40.8135,-62.9967],"9000":[-45.8645,-67.4977],"9400":[-51.623,-69.2168]};
+
+function extractCP(r){
+  const raw = (r.CP_extraido||r.CP||'');
+  const stripped = raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
+  if(stripped.length>=4) return stripped;
+  const colB = (r.b||'').toString().trim();
+  const mB = colB.match(/[A-Z](\d{4})/);
+  if(mB) return mB[1];
+  const mB2 = colB.match(/\b(\d{4,5})\b/);
+  if(mB2) return mB2[1];
+  return '';
+}
+
+// ─── LOAD DATA ───────────────────────────────────────────────────────────────
+async function loadData(){
+  try {
+    // 1. Load distribuidor info
+    const distriUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_DISTRI}`;
+    const distriRes = await fetch(distriUrl);
+    const distriCsv = await distriRes.text();
+    const distris = parseCSV(distriCsv);
+
+    // Find this distribuidor by name match
+    const myDistri = distris.find(d=>{
+      const full = ((d.Nombre||d.nombre||'')+' '+(d.Apellido||d.apellido||'')).trim().toLowerCase();
+      return full === DISTRI_NAME.toLowerCase() || DISTRI_PARAM.toLowerCase().replace(/_/g,' ') === full;
+    });
+
+    if(!myDistri){
+      showError(`No se encontró el distribuidor "${DISTRI_NAME}". Verificá el link.`);
+      return;
+    }
+
+    const nombre = (myDistri.Nombre||myDistri.nombre||'').trim();
+    const apellido = (myDistri.Apellido||myDistri.apellido||'').trim();
+    const radio = parseInt(myDistri.Radio||myDistri.radio||'50')||50;
+    const cpRaw = (myDistri['Codigo Postal']||myDistri['Código Postal']||myDistri.CP||'').toString();
+    const cp = cpRaw.replace(/\D/g,'').slice(0,5);
+    const coords = CP_COORDS[cp];
+
+    document.getElementById('distri-badge').textContent = `${nombre} ${apellido}`;
+    document.getElementById('header-sub').textContent = `${coords?'📍 '+cp:'⚠️ Sin coordenadas'} · Radio ${radio} km`;
+    document.title = `Alleata · ${nombre} ${apellido}`;
+
+    if(!coords){
+      showError(`CP ${cp} sin coordenadas. Contactá a Alleata para actualizar tu perfil.`);
+      return;
+    }
+
+    // 2. Load OTs
+    const otsUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_OTS}`;
+    const otsRes = await fetch(otsUrl);
+    const otsCsv = await otsRes.text();
+    const otsRaw = parseCSV(otsCsv);
+
+    // Filter OTs in radio
+    allOts = otsRaw.filter(r=>{
+      if(['Despachado','Extraviada'].includes(r.Status||r.Estado||'')) return false;
+      const otCp = extractCP(r);
+      if(!otCp) return false;
+      const c = CP_COORDS[otCp];
+      if(!c) return false;
+      return haversine(coords[0],coords[1],c[0],c[1]) <= radio;
+    }).map(r=>{
+      const otCp = extractCP(r);
+      const c = CP_COORDS[otCp];
+      const dist = c ? Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10 : null;
+      return {
+        OT: r.WorkOrderNumber||r.OT||'',
+        Comercio: r.Nombre_del_comercio__c||r.Comercio||'',
+        Cuenta: r['Account.Name']||r.Cuenta||'',
+        Ciudad: r.Direcci_n_de_env_o__City__s||r.Ciudad||'',
+        Calle: r.Direcci_n_de_env_o__Street__s||r.Calle||'',
+        Contacto: r.Contacto__c||r.Contacto||'',
+        Horario: r.Horario__c||r.Horario||'',
+        Obs: r.Observaciones__c||r.Obs||'',
+        Estado: r.Status||r.Estado||'',
+        CP: otCp,
+        Dist: dist,
+      };
+    }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
+
+    // 3. Load existing estados if GID_ESTADOS provided
+    if(GID_ESTADOS){
+      try {
+        const estUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_ESTADOS}`;
+        const estRes = await fetch(estUrl);
+        const estCsv = await estRes.text();
+        const estRows = parseCSV(estCsv);
+        estRows.forEach(r=>{
+          const ot = (r.OT||r.WorkOrderNumber||'').toString().trim();
+          const distri = (r.Distribuidor||'').trim().toLowerCase();
+          if(ot && distri === DISTRI_NAME.toLowerCase()){
+            estados[ot] = { estado: r.Estado_Distri||'', obs: r.Observacion||'', fecha: r.Fecha||'' };
+          }
+        });
+      } catch(e){ console.warn('No se pudo cargar estados:', e); }
+    }
+
+    // Load existing estados from Sheets, then render
+    await loadEstadosFromSheets();
+    renderAll();
+  } catch(e){
+    showError('Error cargando datos: ' + e.message);
+  }
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function getEstado(ot){ return estados[String(ot)]?.estado || ''; }
+function getObs(ot){ return estados[String(ot)]?.obs || ''; }
+
+function renderAll(){
+  const q = searchQ.toLowerCase();
+  const visible = allOts.filter(r=>{
+    if(currentFilter !== 'todos'){
+      const est = getEstado(r.OT);
+      const map = {'pendiente':'','visitado':'Visitado','no-encontrado':'No encontrado','retirado':'Retirado'};
+      if(map[currentFilter] !== est) return false;
+    }
+    if(q) return String(r.OT).includes(q) || r.Comercio.toLowerCase().includes(q) || r.Ciudad.toLowerCase().includes(q);
+    return true;
+  });
+
+  // Stats
+  document.getElementById('stat-total').textContent = allOts.length;
+  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
+  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Visitado'||getEstado(r.OT)==='No encontrado').length;
+  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
+
+  const content = document.getElementById('content');
+  if(!visible.length){
+    content.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div style="font-weight:700;color:#475569">Sin OTs para mostrar</div></div>`;
+    return;
+  }
+
+  content.innerHTML = `<div class="ot-list">${visible.map(r=>renderCard(r)).join('')}</div>`;
+  // Attach events
+  visible.forEach(r=>attachCard(r));
+}
+
+function estadoClass(est){
+  if(est==='Retirado') return 'retirado';
+  if(est==='Visitado') return 'visitado';
+  if(est==='No encontrado') return 'no-encontrado';
+  return '';
+}
+
+function renderCard(r){
+  const est = getEstado(r.OT);
+  const obs = getObs(r.OT);
+  const ec = estadoClass(est);
+  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Visitado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Visitado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700">${est}</span>` : '';
+
+  return `
+  <div class="ot-card ${ec}" id="card-${r.OT}">
+    <div class="ot-card-header">
+      <div>
+        <div class="ot-num">OT #${r.OT} ${estBadge}</div>
+        <div class="ot-comercio">${r.Comercio||'Sin nombre'}</div>
+        ${r.Cuenta&&r.Cuenta!==r.Comercio?`<div class="ot-cuenta">${r.Cuenta}</div>`:''}
+      </div>
+      ${r.Dist!=null?`<div class="ot-dist-badge">${r.Dist} km</div>`:''}
+    </div>
+    <div class="ot-info">
+      ${r.Ciudad?`<div class="ot-info-item"><div class="ot-info-lbl">CIUDAD</div><div class="ot-info-val">📍 ${r.Ciudad}</div></div>`:''}
+      ${r.CP?`<div class="ot-info-item"><div class="ot-info-lbl">CP</div><div class="ot-info-val">${r.CP}</div></div>`:''}
+      ${r.Calle?`<div class="ot-info-item ot-info-val full"><div class="ot-info-lbl">DIRECCIÓN</div><div class="ot-info-val">${r.Calle}</div></div>`:''}
+      ${r.Contacto?`<div class="ot-info-item"><div class="ot-info-lbl">CONTACTO</div><div class="ot-info-val"><a href="https://wa.me/${r.Contacto.replace(/\D/g,'')}" style="color:#00897B;text-decoration:none">${r.Contacto}</a></div></div>`:''}
+      ${r.Horario?`<div class="ot-info-item"><div class="ot-info-lbl">HORARIO</div><div class="ot-info-val">${r.Horario}</div></div>`:''}
+    </div>
+    ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
+    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}</div>`:''}
+    <div class="ot-actions">
+      <button class="action-btn visitado-btn ${est==='Visitado'?'active':''}" data-ot="${r.OT}" data-action="Visitado">
+        <span class="icon">👁</span>Visitado
+      </button>
+      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" data-ot="${r.OT}" data-action="No encontrado">
+        <span class="icon">❌</span>No encontrado
+      </button>
+      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" data-ot="${r.OT}" data-action="Retirado">
+        <span class="icon">✅</span>Retirado
+      </button>
+    </div>
+    <div class="obs-input-wrap" id="obs-${r.OT}">
+      <textarea class="obs-input" id="obstext-${r.OT}" rows="2" placeholder="Observación opcional..."></textarea>
+      <button class="obs-confirm" data-ot="${r.OT}">Confirmar →</button>
+    </div>
+  </div>`;
+}
+
+function attachCard(r){
+  // Action buttons
+  ['Visitado','No encontrado','Retirado'].forEach(action=>{
+    const btn = document.querySelector(`[data-ot="${r.OT}"][data-action="${action}"]`);
+    if(!btn) return;
+    btn.addEventListener('click', ()=>{
+      const obsWrap = document.getElementById(`obs-${r.OT}`);
+      const current = getEstado(r.OT);
+      if(current === action){
+        // Toggle off
+        delete estados[String(r.OT)];
+        obsWrap.classList.remove('show');
+      } else {
+        if(!estados[String(r.OT)]) estados[String(r.OT)] = {};
+        estados[String(r.OT)].estado = action;
+        obsWrap.classList.add('show');
+        document.getElementById(`obstext-${r.OT}`).value = estados[String(r.OT)].obs||'';
+      }
+      updateCard(r);
+    });
+  });
+
+  // Confirm obs
+  const confirmBtn = document.querySelector(`.obs-confirm[data-ot="${r.OT}"]`);
+  if(confirmBtn){
+    confirmBtn.addEventListener('click', ()=>{
+      const obs = document.getElementById(`obstext-${r.OT}`).value.trim();
+      if(!estados[String(r.OT)]) return;
+      estados[String(r.OT)].obs = obs;
+      estados[String(r.OT)].fecha = new Date().toLocaleString('es-AR');
+      document.getElementById(`obs-${r.OT}`).classList.remove('show');
+      saveEstado(r.OT);
+      updateCard(r);
+      toast(`✅ OT #${r.OT} marcada como ${estados[String(r.OT)].estado}`);
+      // Update stats
+      renderStats();
+    });
+  }
+}
+
+function updateCard(r){
+  const card = document.getElementById(`card-${r.OT}`);
+  if(!card) return;
+  const est = getEstado(r.OT);
+  card.className = `ot-card ${estadoClass(est)}`;
+  // Re-render card content
+  card.outerHTML = renderCard(r);
+  const newCard = document.getElementById(`card-${r.OT}`);
+  if(newCard) attachCard(r);
+  renderStats();
+}
+
+function renderStats(){
+  document.getElementById('stat-total').textContent = allOts.length;
+  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
+  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Visitado'||getEstado(r.OT)==='No encontrado').length;
+  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
+}
+
+// ─── SAVE TO SHEETS via Apps Script webhook ──────────────────
+const WEBHOOK_URL = params.get('webhook') || '';
+
+async function saveEstado(otNum){
+  // Always save locally first
+  try {
+    const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+    localStorage.setItem(key, JSON.stringify(estados));
+  } catch(e){}
+
+  if(!WEBHOOK_URL || !estados[String(otNum)]) return;
+
+  const payload = {
+    distri: DISTRI_NAME,
+    ot: String(otNum),
+    estado: estados[String(otNum)].estado,
+    obs: estados[String(otNum)].obs||'',
+    fecha: estados[String(otNum)].fecha||new Date().toLocaleString('es-AR'),
+  };
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      mode: 'no-cors', // Apps Script needs no-cors
+    });
+    // no-cors means we can't read response, but if no error = success
+  } catch(err){
+    console.warn('Error guardando en Sheets:', err);
+  }
+}
+
+// ─── LOAD estados from Apps Script GET ───────────────────────
+async function loadEstadosFromSheets(){
+  if(!WEBHOOK_URL) return;
+  try {
+    const url = WEBHOOK_URL + '?distri=' + encodeURIComponent(DISTRI_NAME);
+    const res = await fetch(url);
+    const json = await res.json();
+    if(json.ok && json.data){
+      json.data.forEach(r=>{
+        const ot = String(r.OT||'').trim();
+        if(ot){
+          estados[ot] = {
+            estado: r.Estado_Distri||'',
+            obs: r.Observacion||'',
+            fecha: r.Fecha_Distri||'',
+          };
+        }
+      });
+    }
+  } catch(e){
+    console.warn('No se pudo cargar estados desde Sheets:', e);
+  }
+}
+
+function showError(msg){
+  document.getElementById('content').innerHTML = `
+    <div class="empty">
+      <div class="empty-icon">⚠️</div>
+      <div style="font-weight:700;color:#475569;margin-bottom:8px">${msg}</div>
+      <div style="font-size:12px;color:#94a3b8">Contactá a Alleata para obtener tu link correcto.</div>
+    </div>`;
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', e=>{
+  searchQ = e.target.value;
+  renderAll();
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderAll();
+  });
+});
+
+// Load saved estados from localStorage
+try {
+  const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+  const saved = localStorage.getItem(key);
+  if(saved) estados = JSON.parse(saved);
+} catch(e){}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+if(!DISTRI_PARAM){
+  showError('Link sin distribuidor. Usá el link que te envió Alleata.');
+} else {
+  loadData();
+}
+</script>
+</body>
+</html>
