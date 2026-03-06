@@ -249,24 +249,48 @@ function ConfigTab({sheetOts, sheetDistri, onSave}){
 }
 
 function OtModal({ot, onClose}){
+  const [cpInferido, setCpInferido] = React.useState(null);
+  const [cpLoading, setCpLoading] = React.useState(false);
+
+  React.useEffect(()=>{
+    if(!ot){setCpInferido(null);return;}
+    const cpActual=(ot.CP||'').replace(/\D/g,'');
+    if(cpActual.length>=4){setCpInferido(null);return;}
+    // CP missing - try georef API
+    const ciudad=ot.Ciudad||'';
+    const prov=ot.ProvNorm||ot.Provincia||'';
+    const calle=ot.Calle||'';
+    if(!ciudad&&!calle){return;}
+    setCpLoading(true);
+    // Build georef query: street + city + province
+    const params=new URLSearchParams();
+    if(calle) params.set('direccion', calle);
+    if(ciudad) params.set('localidad_censal',ciudad);
+    if(prov) params.set('provincia',prov);
+    params.set('max','1');
+    params.set('campos','basico,codigo_postal');
+    fetch('https://apis.datos.gob.ar/georef/api/direcciones?'+params.toString())
+      .then(r=>r.json())
+      .then(d=>{
+        const cp=d?.direcciones?.[0]?.codigo_postal;
+        if(cp) setCpInferido(cp);
+      })
+      .catch(()=>{})
+      .finally(()=>setCpLoading(false));
+  },[ot]);
+
   if(!ot) return null;
   const ec = ESTADO_C[ot.Estado];
   const zc = ZONA_C[ot.Zona];
+  const cpFinal = (ot.CP||'').replace(/\D/g,'').length>=4 ? ot.CP : (cpInferido||ot.CP||'');
   const fields = [
-    ['OT', 'OT #'+ot.OT],
-    ['Comercio', ot.Comercio],
-    ['Cuenta', ot.Cuenta],
-    ['Estado', ot.Estado],
-    ['Zona', ot.Zona],
-    ['Logística', ot.Logistica],
     ['Provincia', ot.ProvNorm],
     ['Ciudad', ot.Ciudad],
-    ['CP', ot.CP],
+    ['CP', cpFinal+(cpInferido&&!(ot.CP||'').replace(/\D/g,'').length?' 🔍 inferido':'')],
     ['Dirección', ot.Calle],
     ['Contacto', ot.Contacto],
     ['Horario', ot.Horario],
     ['Gestión', ot.GestionEstado],
-    ['Observaciones', ot.Obs],
   ].filter(([,v])=>v);
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.75)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:400,padding:16}} onClick={onClose}>
@@ -275,8 +299,9 @@ function OtModal({ot, onClose}){
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
             <div>
               <div style={{fontSize:22,fontWeight:900,color:'#5eead4'}}>OT #{ot.OT}</div>
-              <div style={{fontSize:15,fontWeight:700,color:'#fff',marginTop:4}}>{ot.Comercio}</div>
-              {ot.Cuenta&&<div style={{fontSize:12,color:'#99f6e4',marginTop:2}}>{ot.Cuenta}</div>}
+              <div style={{fontSize:15,fontWeight:700,color:'#fff',marginTop:4}}>{ot.Comercio||'Sin nombre'}</div>
+              {ot.Cuenta&&ot.Cuenta!==ot.Comercio&&<div style={{fontSize:12,color:'#99f6e4',marginTop:2}}>{ot.Cuenta}</div>}
+              {ot.Ciudad&&<div style={{fontSize:12,color:'#5eead4',marginTop:2}}>📍 {ot.Ciudad}{ot.ProvNorm?', '+ot.ProvNorm:''}</div>}
             </div>
             <button onClick={onClose} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:10,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:13,flexShrink:0}}>✕</button>
           </div>
