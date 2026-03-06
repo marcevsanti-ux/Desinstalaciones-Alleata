@@ -470,6 +470,7 @@ function OtModal({ot, onClose}){
 
 function DistribuidoresTab({data,sheetDistri}){
   const [distris,setDistris]=useState([]);
+  const [distEstados,setDistEstados]=useState({});
   const [radios,setRadios]=useState(()=>{try{const saved={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('alleata_radios_')){saved[k.replace('alleata_radios_','')]=parseInt(localStorage.getItem(k));}}return saved;}catch(e){return {};}});
   const [loading,setLoading]=useState(true);
   const [otsModal,setOtsModal]=useState(null);
@@ -493,6 +494,10 @@ function DistribuidoresTab({data,sheetDistri}){
         const coords=cpNum?CP_COORDS[cpNum]:null;
         return{id:i,nombre,apellido,dir,cp,loc,prov,tel,mail,radio,lat:coords?coords[0]:null,lon:coords?coords[1]:null};
       });
+      // Apply saved radios from localStorage
+      const savedR={};
+      try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('alleata_radios_')){savedR[k.replace('alleata_radios_','')]=parseInt(localStorage.getItem(k));}}}catch(e){}
+      setRadios(prev=>({...savedR,...prev}));
       setDistris(mapped);
       const r={};mapped.forEach(d=>{r[d.id]=d.radio;});setRadios(r);
       setLoading(false);
@@ -582,6 +587,7 @@ function DistribuidoresTab({data,sheetDistri}){
                   <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.4}}>OTs<br/>a retirar</div>
                   <div style={{flex:1,display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
                     {Object.entries(pe).map(([e,n])=>(<span key={e} style={{background:(ESTADO_C[e]||'#94a3b8')+'22',color:ESTADO_C[e]||'#94a3b8',border:`1px solid ${ESTADO_C[e]||'#94a3b8'}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{e.split(' ')[0]}: {n}</span>))}
+                    {(()=>{const de=distEstados[d.nombre+' '+d.apellido];if(!de)return null;const cols={Contactado:'#3b82f6','No encontrado':'#ef4444',Retirado:'#10b981'};return Object.entries(de).filter(([,n])=>n>0).map(([e,n])=>(<span key={'de'+e} style={{background:cols[e]+'22',color:cols[e],border:`1px solid ${cols[e]}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{'Contactado'===e?'📞':e==='Retirado'?'✅':'❌'} {n}</span>));})()}
                   </div>
                 </div>
 
