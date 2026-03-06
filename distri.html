@@ -215,6 +215,63 @@
     .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
 
+    /* CONFIRM MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(10,37,64,.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500; padding: 20px;
+    }
+    .modal-box {
+      background: #fff; border-radius: 22px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-ot { font-size: 12px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+    .modal-comercio { font-size: 16px; font-weight: 900; color: var(--navy); }
+    .modal-estado-label {
+      margin: 16px 22px 0;
+      font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: .5px;
+    }
+    .modal-estado-pills {
+      display: flex; gap: 8px; padding: 10px 22px 0; flex-wrap: wrap;
+    }
+    .modal-pill {
+      padding: 8px 16px; border-radius: 99px; border: 2px solid transparent;
+      font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all .15s;
+    }
+    .modal-pill.contactado  { background: #dbeafe; color: #1d4ed8; }
+    .modal-pill.no-encontrado { background: #fee2e2; color: #dc2626; }
+    .modal-pill.retirado    { background: #d1fae5; color: #059669; }
+    .modal-pill.active { border-color: currentColor; transform: scale(1.05); }
+    .modal-obs {
+      margin: 14px 22px 0;
+    }
+    .modal-obs textarea {
+      width: 100%; border-radius: 12px; border: 2px solid var(--border);
+      padding: 10px 14px; font-family: inherit; font-size: 13px;
+      resize: none; outline: none; color: var(--navy);
+    }
+    .modal-obs textarea:focus { border-color: var(--teal); }
+    .modal-actions {
+      display: flex; gap: 10px; padding: 16px 22px 20px;
+    }
+    .modal-cancel {
+      flex: 1; background: #f1f5f9; color: #64748b; border: none;
+      border-radius: 12px; padding: 12px; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .modal-save {
+      flex: 2; background: linear-gradient(135deg,#00897B,#00BFA5); color: #fff;
+      border: none; border-radius: 12px; padding: 12px; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
     /* TOAST */
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -278,6 +335,29 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-ot" id="modal-ot-num"></div>
+      <div class="modal-comercio" id="modal-comercio"></div>
+    </div>
+    <div class="modal-estado-label">MARCAR COMO</div>
+    <div class="modal-estado-pills">
+      <button class="modal-pill contactado" id="pill-contactado" onclick="selectPill('Contactado')">📞 Contactado</button>
+      <button class="modal-pill no-encontrado" id="pill-no-encontrado" onclick="selectPill('No encontrado')">❌ No encontrado</button>
+      <button class="modal-pill retirado" id="pill-retirado" onclick="selectPill('Retirado')">✅ Retirado</button>
+    </div>
+    <div class="modal-obs">
+      <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-save" id="modal-save-btn" onclick="saveModal()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
@@ -448,11 +528,12 @@ function getObs(ot){ return estados[String(ot)]?.obs || ''; }
 function renderAll(){
   const q = searchQ.toLowerCase();
   const visible = allOts.filter(r=>{
-    if(currentFilter !== 'todos'){
-      const est = getEstado(r.OT);
-      const map = {'pendiente':'','contactado':'Contactado','no-encontrado':'No encontrado','retirado':'Retirado'};
-      if(map[currentFilter] !== est) return false;
-    }
+    const est = getEstado(r.OT);
+    if(currentFilter === 'pendiente' && est !== '') return false;
+    if(currentFilter === 'contactado' && est !== 'Contactado') return false;
+    if(currentFilter === 'no-encontrado' && est !== 'No encontrado') return false;
+    if(currentFilter === 'retirado' && est !== 'Retirado') return false;
+    // 'todos' shows everything
     if(q) return String(r.OT).includes(q) || r.Comercio.toLowerCase().includes(q) || r.Ciudad.toLowerCase().includes(q);
     return true;
   });
@@ -552,19 +633,15 @@ function renderCard(r){
     ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
     ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}</div>`:''}
     <div class="ot-actions">
-      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" data-ot="${r.OT}" data-action="Contactado">
+      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','Contactado')">
         <span class="icon">📞</span>Contactado
       </button>
-      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" data-ot="${r.OT}" data-action="No encontrado">
+      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','No encontrado')">
         <span class="icon">❌</span>No encontrado
       </button>
-      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" data-ot="${r.OT}" data-action="Retirado">
+      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','Retirado')">
         <span class="icon">✅</span>Retirado
       </button>
-    </div>
-    <div class="obs-input-wrap" id="obs-${r.OT}">
-      <textarea class="obs-input" id="obstext-${r.OT}" rows="2" placeholder="Observación opcional..."></textarea>
-      <button class="obs-confirm" data-ot="${r.OT}">Confirmar →</button>
     </div>
   </div>`;
 }
@@ -610,15 +687,7 @@ function attachCard(r){
 }
 
 function updateCard(r){
-  const card = document.getElementById(`card-${r.OT}`);
-  if(!card) return;
-  const est = getEstado(r.OT);
-  card.className = `ot-card ${estadoClass(est)}`;
-  // Re-render card content
-  card.outerHTML = renderCard(r);
-  const newCard = document.getElementById(`card-${r.OT}`);
-  if(newCard) attachCard(r);
-  renderStats();
+  renderAll(); // full re-render to move card to correct section
 }
 
 function renderStats(){
