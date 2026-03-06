@@ -272,6 +272,80 @@
       border: none; border-radius: 12px; padding: 12px; font-family: inherit;
       font-size: 14px; font-weight: 700; cursor: pointer;
     }
+    /* TABS */
+    .nav-tabs {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 4px;
+      margin: 0 0 0 auto;
+    }
+    .nav-tab {
+      padding: 7px 18px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,.6);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .nav-tab.active { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* CALENDAR */
+    .cal-wrap { max-width: 700px; margin: 0 auto; padding: 16px; }
+    .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .cal-title { font-size:18px; font-weight:900; color:var(--navy); }
+    .cal-nav { background:var(--bg); border:2px solid var(--border); border-radius:10px; padding:6px 14px; font-family:inherit; font-size:16px; cursor:pointer; color:var(--navy); }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-dow { text-align:center; font-size:10px; font-weight:800; color:#94a3b8; padding:6px 0; letter-spacing:.5px; }
+    .cal-day {
+      min-height:72px; border-radius:12px; padding:6px;
+      background:#fff; border:2px solid var(--border);
+      position:relative; cursor:pointer; transition:border-color .15s;
+    }
+    .cal-day:hover { border-color:var(--teal); }
+    .cal-day.other-month { background:#f8fafc; opacity:.5; }
+    .cal-day.today { border-color:var(--teal); background:#E0F2F1; }
+    .cal-day.has-events { border-color:#3b82f6; }
+    .cal-day-num { font-size:12px; font-weight:800; color:var(--navy); }
+    .cal-event {
+      margin-top:3px; padding:2px 6px; border-radius:6px;
+      background:#dbeafe; color:#1d4ed8;
+      font-size:10px; font-weight:700;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      cursor:pointer;
+    }
+    .cal-event.vencido { background:#fee2e2; color:#dc2626; }
+    .cal-event.hoy { background:#d1fae5; color:#059669; }
+
+    /* DATE PICKER in modal */
+    .modal-date-input {
+      width:100%; padding:12px 14px; border-radius:12px;
+      border:2px solid var(--border); font-family:inherit;
+      font-size:16px; outline:none; color:var(--navy);
+      margin-top:8px;
+    }
+    .modal-date-input:focus { border-color:var(--teal); }
+
+    /* AGENDA EVENT DETAIL */
+    .agenda-detail {
+      position:fixed; inset:0; background:rgba(10,37,64,.7);
+      backdrop-filter:blur(4px); display:flex;
+      align-items:center; justify-content:center; z-index:600; padding:20px;
+    }
+    .agenda-detail-box {
+      background:#fff; border-radius:20px; width:100%; max-width:380px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden;
+    }
+
+    @media(min-width:768px){
+      .cal-wrap { max-width:960px; }
+      .cal-day { min-height:90px; }
+    }
+
     /* TOAST */
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -309,6 +383,10 @@
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-ots" onclick="switchTab('ots')">📋 OTs</button>
+      <button class="nav-tab" id="tab-agenda" onclick="switchTab('agenda')">📅 Agenda</button>
+    </div>
   </div>
   <div class="header-stats">
     <div class="stat-pill"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">TOTAL</div></div>
@@ -331,6 +409,37 @@
   <div class="loading">
     <div class="spinner"></div>
     <div style="font-weight:700;color:#475569;font-size:14px">Cargando tus OTs...</div>
+  </div>
+</div>
+
+<div id="agenda-view" style="display:none">
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">‹</button>
+      <div class="cal-title" id="cal-title"></div>
+      <button class="cal-nav" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-grid" id="cal-dow"></div>
+    <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<div class="agenda-detail" id="agenda-detail" style="display:none" onclick="if(event.target===this)closeAgendaDetail()">
+  <div class="agenda-detail-box">
+    <div style="background:linear-gradient(135deg,#0A2540,#063D52);padding:18px 22px;color:#fff">
+      <div style="font-size:12px;font-weight:700;color:#5eead4" id="ad-ot"></div>
+      <div style="font-size:16px;font-weight:900;margin-top:4px" id="ad-comercio"></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px" id="ad-ciudad"></div>
+    </div>
+    <div style="padding:20px 22px">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:6px">PRÓXIMO CONTACTO</div>
+      <input type="date" class="modal-date-input" id="ad-date"/>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="closeAgendaDetail()" style="flex:1;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="saveAgenda()" style="flex:2;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">💾 Guardar</button>
+        <button onclick="clearAgenda()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">🗑</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -480,7 +589,7 @@ function renderCard(r){
   const obs = getObs(r.OT);
   const fecha = getFecha(r.OT);
   const ec = estadoClass(est);
-  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:6px">${est}</span>${fecha?`<span style="font-size:10px;color:#94a3b8;margin-left:6px">· ${fecha}</span>`:''}` : '';
+  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:6px">${est}</span>${fecha?`<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;margin-left:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:1px 7px">🕐 <b style='color:#475569'>Últ. modificación:</b> ${fecha}</span>`:''}` : '';
   const mapsUrl = encodeURIComponent((r.Calle||'')+(r.Ciudad?', '+r.Ciudad:'')+', Argentina');
 
   return `
@@ -534,6 +643,11 @@ function renderCard(r){
         <span class="icon">✅</span>Retirado
       </button>
     </div>
+    ${(()=>{const ag=agenda[String(r.OT)];const dateStr=ag?ag.fecha:'';const today=new Date().toISOString().slice(0,10);const isVencido=dateStr&&dateStr<today;const isHoy=dateStr===today;return `<div style="padding:6px 12px 12px;background:#fafbfc;border-top:1px solid #f1f5f9">
+      <button onclick="openAgendaDetail('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','${(r.Ciudad||'').replace(/'/g,"\'")}','${dateStr}')" style="width:100%;background:${dateStr?(isVencido?'#fee2e2':isHoy?'#d1fae5':'#dbeafe'):'#f8fafc'};color:${dateStr?(isVencido?'#dc2626':isHoy?'#059669':'#1d4ed8'):'#94a3b8'};border:2px dashed ${dateStr?(isVencido?'#fca5a5':isHoy?'#6ee7b7':'#93c5fd'):'#e2e8f0'};border-radius:10px;padding:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        📅 ${dateStr?(isVencido?'⚠️ Vencido: '+dateStr:isHoy?'🔔 Hoy: '+dateStr:'Próx. contacto: '+dateStr):'Agendar próximo contacto'}
+      </button>
+    </div>`})()}
   </div>`;
 }
 
@@ -673,6 +787,138 @@ try{
 
 if(!DISTRI_PARAM){showError('Link sin distribuidor.');}
 else{loadData();}
+
+// ─── TABS ─────────────────────────────────────────────────────
+let currentTab = 'ots';
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tab-ots').classList.toggle('active', tab==='ots');
+  document.getElementById('tab-agenda').classList.toggle('active', tab==='agenda');
+  document.getElementById('content').style.display = tab==='ots'?'block':'none';
+  document.querySelector('.filters').style.display = tab==='ots'?'flex':'none';
+  document.getElementById('agenda-view').style.display = tab==='agenda'?'block':'none';
+  if(tab==='agenda') renderCalendar();
+}
+
+// ─── AGENDA ───────────────────────────────────────────────────
+let agenda = {}; // {[OT]: {fecha:'YYYY-MM-DD'}}
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+let agendaDetailOt = null;
+
+// Load from localStorage
+try{
+  const saved = localStorage.getItem('alleata_agenda_'+DISTRI_NAME.replace(/\s/g,'_'));
+  if(saved) agenda = JSON.parse(saved);
+}catch(e){}
+
+function saveAgendaLocal(){
+  try{ localStorage.setItem('alleata_agenda_'+DISTRI_NAME.replace(/\s/g,'_'), JSON.stringify(agenda)); }catch(e){}
+}
+
+function openAgendaDetail(ot, comercio, ciudad, fechaActual){
+  agendaDetailOt = String(ot);
+  document.getElementById('ad-ot').textContent = 'OT #' + ot;
+  document.getElementById('ad-comercio').textContent = comercio;
+  document.getElementById('ad-ciudad').textContent = ciudad ? '📍 '+ciudad : '';
+  document.getElementById('ad-date').value = fechaActual || '';
+  document.getElementById('agenda-detail').style.display = 'flex';
+}
+
+function closeAgendaDetail(){
+  document.getElementById('agenda-detail').style.display = 'none';
+  agendaDetailOt = null;
+}
+
+function saveAgenda(){
+  if(!agendaDetailOt) return;
+  const fecha = document.getElementById('ad-date').value;
+  if(!fecha){ toast('⚠️ Seleccioná una fecha'); return; }
+  agenda[agendaDetailOt] = {fecha};
+  saveAgendaLocal();
+  closeAgendaDetail();
+  const d = new Date(fecha+'T12:00:00');
+  const label = d.toLocaleDateString('es-AR',{day:'2-digit',month:'long'});
+  toast('📅 OT #'+agendaDetailOt+' agendada para '+label);
+  renderAll();
+  if(currentTab==='agenda') renderCalendar();
+}
+
+function clearAgenda(){
+  if(!agendaDetailOt) return;
+  delete agenda[agendaDetailOt];
+  saveAgendaLocal();
+  closeAgendaDetail();
+  renderAll();
+  if(currentTab==='agenda') renderCalendar();
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+function renderCalendar(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('cal-title').textContent = MONTHS_ES[calMonth] + ' ' + calYear;
+
+  // Day of week headers
+  document.getElementById('cal-dow').innerHTML = DAYS_ES.map(d=>
+    `<div class="cal-dow">${d}</div>`
+  ).join('');
+
+  // Build otMap: fecha -> [{ot, comercio, ciudad}]
+  const otMap = {};
+  Object.entries(agenda).forEach(([ot, val])=>{
+    if(!val.fecha) return;
+    if(!otMap[val.fecha]) otMap[val.fecha] = [];
+    const r = allOts.find(o=>String(o.OT)===String(ot));
+    otMap[val.fecha].push({ot, comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||''});
+  });
+
+  // First day of month
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
+  let cells = [];
+
+  // Prev month padding
+  for(let i=firstDay-1; i>=0; i--){
+    cells.push({day: daysInPrev-i, current:false, dateStr:null});
+  }
+  // Current month
+  for(let d=1; d<=daysInMonth; d++){
+    const mm = String(calMonth+1).padStart(2,'0');
+    const dd = String(d).padStart(2,'0');
+    cells.push({day:d, current:true, dateStr:`${calYear}-${mm}-${dd}`});
+  }
+  // Next month padding
+  let next=1;
+  while(cells.length%7!==0) cells.push({day:next++, current:false, dateStr:null});
+
+  document.getElementById('cal-grid').innerHTML = cells.map(cell=>{
+    const isToday = cell.dateStr===today;
+    const events  = cell.dateStr ? (otMap[cell.dateStr]||[]) : [];
+    const hasEvents = events.length>0;
+    const cls = ['cal-day', !cell.current?'other-month':'', isToday?'today':'', hasEvents?'has-events':''].filter(Boolean).join(' ');
+
+    const evHTML = events.slice(0,3).map(e=>{
+      const isVencido = cell.dateStr<today;
+      const isHoy     = cell.dateStr===today;
+      const ecls = isVencido?'vencido':isHoy?'hoy':'';
+      return `<div class="cal-event ${ecls}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="OT #${e.ot} · ${e.comercio}">OT #${e.ot}</div>`;
+    }).join('');
+    const extra = events.length>3 ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px">+${events.length-3} más</div>` : '';
+
+    return `<div class="${cls}">
+      <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
+      ${evHTML}${extra}
+    </div>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
