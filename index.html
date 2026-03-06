@@ -171,6 +171,8 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
   const ciudades = useMemo(()=>{
     const m={};
     ots.forEach(r=>{
+      // Skip OTs already assigned to a distribuidor
+      if(otsConDistri.has(r.OT)) return;
       let c = r.Ciudad||'Sin ciudad';
       if(isAmba){
         const sub = getAmbaSubzona(c);
@@ -193,7 +195,7 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
       });
     }
     return Object.entries(m).sort((a,b)=>b[1].total-a[1].total);
-  },[ots,isAmba]);
+  },[ots,isAmba,otsConDistri]);
 
   const otsCity = ciudadSel
     ? ciudadSel.startsWith('__distri__')
