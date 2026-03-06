@@ -360,26 +360,23 @@
 </div>
 
 <script>
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
-// URL params: ?distri=NOMBRE_APELLIDO&sheet=SHEET_ID&gid=GID_ESTADOS
-// Example: ?distri=Enrique_Arquibola&sheet=1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY&gid=107031751
-
 const params = new URLSearchParams(location.search);
 const DISTRI_PARAM = params.get('distri') || '';
 const SHEET_ID = params.get('sheet') || '1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY';
-const GID_DISTRI = params.get('gid_distri') || '107031751';      // distributors sheet
-const GID_ESTADOS = params.get('gid_estados') || '';              // estados sheet (TBD)
-const GID_OTS = params.get('gid_ots') || '1843553678';            // OT main sheet
-
+const GID_DISTRI = params.get('gid_distri') || '107031751';
+const GID_OTS = params.get('gid_ots') || '1843553678';
+const WEBHOOK_URL = params.get('webhook') || '';
 const DISTRI_NAME = DISTRI_PARAM.replace(/_/g,' ');
 
-// ─── STATE ──────────────────────────────────────────────────────────────────
 let allOts = [];
-let estados = {};   // { [OT_num]: { estado, obs, fecha } }
+let estados = {};
 let currentFilter = 'todos';
 let searchQ = '';
 
-// ─── UTILS ──────────────────────────────────────────────────────────────────
+// Modal state
+let modalOt = null;
+let modalEstado = null;
+
 function parseCSV(csv){
   const lines = csv.split('\n').filter(l=>l.trim());
   if(lines.length < 2) return [];
@@ -398,7 +395,7 @@ function parseCSV(csv){
   });
 }
 
-function toast(msg, duration=2200){
+function toast(msg, duration=2500){
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
@@ -412,172 +409,23 @@ function haversine(lat1,lon1,lat2,lon2){
   return R*2*Math.asin(Math.sqrt(a));
 }
 
-// ─── CP COORDS (subset needed for distance) ─────────────────────────────────
-const CP_COORDS = {"1005":[-34.6037,-58.3816],"1014":[-34.526,-58.488],"1425":[-34.588,-58.42],"1604":[-34.476,-58.52],"1625":[-34.349,-58.797],"1629":[-34.458,-58.914],"1640":[-34.492,-58.509],"1650":[-34.567,-58.539],"1657":[-34.588,-58.658],"1663":[-34.539,-58.706],"1700":[-34.617,-58.557],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1714":[-34.659,-58.665],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1757":[-34.748,-58.597],"1805":[-34.847,-58.515],"1821":[-34.7,-58.405],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1875":[-34.705,-58.315],"1880":[-34.763,-58.208],"1886":[-34.836,-58.193],"1900":[-34.9205,-57.9536],"1984":[-34.995,-58.006],"2000":[-32.9468,-60.6393],"2800":[-34.098,-59.027],"2900":[-33.3347,-60.2117],"3000":[-31.6333,-60.7],"3100":[-31.7333,-60.5167],"3300":[-27.3671,-55.896],"3400":[-27.4806,-58.8341],"3500":[-27.4514,-58.9867],"3600":[-26.1775,-58.1781],"4000":[-26.8083,-65.2176],"4400":[-24.7821,-65.4232],"4600":[-24.1857,-65.2994],"5000":[-31.4135,-64.1811],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5500":[-32.8908,-68.8272],"5800":[-33.1232,-64.3493],"5900":[-32.4072,-63.2409],"6000":[-34.5667,-60.9167],"6700":[-34.5696,-59.1076],"7000":[-37.325,-59.1392],"7174":[-37.643,-57.706],"7300":[-36.7756,-59.8578],"7400":[-36.8921,-60.3224],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"8000":[-38.7183,-62.2663],"8300":[-38.9516,-68.0591],"8400":[-41.1335,-71.3103],"8500":[-40.8135,-62.9967],"9000":[-45.8645,-67.4977],"9400":[-51.623,-69.2168]};
+const CP_COORDS = {"1005":[-34.6037,-58.3816],"1289":[-34.639,-58.378],"1414":[-34.588,-58.44],"1425":[-34.588,-58.42],"1604":[-34.476,-58.52],"1625":[-34.349,-58.797],"1629":[-34.458,-58.914],"1640":[-34.492,-58.509],"1650":[-34.567,-58.539],"1657":[-34.588,-58.658],"1663":[-34.539,-58.706],"1700":[-34.617,-58.557],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1714":[-34.659,-58.665],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1757":[-34.748,-58.597],"1805":[-34.847,-58.515],"1821":[-34.7,-58.405],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1875":[-34.705,-58.315],"1880":[-34.763,-58.208],"1886":[-34.836,-58.193],"1900":[-34.9205,-57.9536],"1984":[-34.995,-58.006],"2000":[-32.9468,-60.6393],"2800":[-34.098,-59.027],"2900":[-33.3347,-60.2117],"3000":[-31.6333,-60.7],"3100":[-31.7333,-60.5167],"3300":[-27.3671,-55.896],"3400":[-27.4806,-58.8341],"3500":[-27.4514,-58.9867],"3600":[-26.1775,-58.1781],"4000":[-26.8083,-65.2176],"4400":[-24.7821,-65.4232],"4600":[-24.1857,-65.2994],"5000":[-31.4135,-64.1811],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5500":[-32.8908,-68.8272],"5800":[-33.1232,-64.3493],"5900":[-32.4072,-63.2409],"6000":[-34.5667,-60.9167],"6700":[-34.5696,-59.1076],"7000":[-37.325,-59.1392],"7174":[-37.643,-57.706],"7300":[-36.7756,-59.8578],"7400":[-36.8921,-60.3224],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"8000":[-38.7183,-62.2663],"8300":[-38.9516,-68.0591],"8400":[-41.1335,-71.3103],"8500":[-40.8135,-62.9967],"9000":[-45.8645,-67.4977]};
 
 function extractCP(r){
-  const raw = (r.CP_extraido||r.CP||'');
-  const stripped = raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
+  const raw=(r.CP_extraido||r.CP||'');
+  const stripped=raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
   if(stripped.length>=4) return stripped;
-  const colB = (r.b||'').toString().trim();
-  const mB = colB.match(/[A-Z](\d{4})/);
+  const colB=(r.b||'').toString().trim();
+  const mB=colB.match(/[A-Z](\d{4})/);
   if(mB) return mB[1];
-  const mB2 = colB.match(/\b(\d{4,5})\b/);
+  const mB2=colB.match(/\b(\d{4,5})\b/);
   if(mB2) return mB2[1];
   return '';
 }
 
-// ─── LOAD DATA ───────────────────────────────────────────────────────────────
-async function loadData(){
-  try {
-    // 1. Load distribuidor info
-    const distriUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_DISTRI}`;
-    const distriRes = await fetch(distriUrl);
-    const distriCsv = await distriRes.text();
-    const distris = parseCSV(distriCsv);
-
-    // Find this distribuidor by name match
-    const myDistri = distris.find(d=>{
-      const full = ((d.Nombre||d.nombre||'')+' '+(d.Apellido||d.apellido||'')).trim().toLowerCase();
-      return full === DISTRI_NAME.toLowerCase() || DISTRI_PARAM.toLowerCase().replace(/_/g,' ') === full;
-    });
-
-    if(!myDistri){
-      showError(`No se encontró el distribuidor "${DISTRI_NAME}". Verificá el link.`);
-      return;
-    }
-
-    const nombre = (myDistri.Nombre||myDistri.nombre||'').trim();
-    const apellido = (myDistri.Apellido||myDistri.apellido||'').trim();
-    const radio = parseInt(myDistri.Radio||myDistri.radio||'50')||50;
-    const cpRaw = (myDistri['Codigo Postal']||myDistri['Código Postal']||myDistri.CP||'').toString();
-    const cp = cpRaw.replace(/\D/g,'').slice(0,5);
-    const coords = CP_COORDS[cp];
-
-    document.getElementById('distri-badge').textContent = `${nombre} ${apellido}`;
-    document.getElementById('header-sub').textContent = `${coords?'📍 '+cp:'⚠️ Sin coordenadas'} · Radio ${radio} km`;
-    document.title = `Alleata · ${nombre} ${apellido}`;
-
-    if(!coords){
-      showError(`CP ${cp} sin coordenadas. Contactá a Alleata para actualizar tu perfil.`);
-      return;
-    }
-
-    // 2. Load OTs
-    const otsUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_OTS}`;
-    const otsRes = await fetch(otsUrl);
-    const otsCsv = await otsRes.text();
-    const otsRaw = parseCSV(otsCsv);
-
-    // Filter OTs in radio
-    allOts = otsRaw.filter(r=>{
-      if(['Despachado','Extraviada'].includes(r.Status||r.Estado||'')) return false;
-      const otCp = extractCP(r);
-      if(!otCp) return false;
-      const c = CP_COORDS[otCp];
-      if(!c) return false;
-      return haversine(coords[0],coords[1],c[0],c[1]) <= radio;
-    }).map(r=>{
-      const otCp = extractCP(r);
-      const c = CP_COORDS[otCp];
-      const dist = c ? Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10 : null;
-      return {
-        OT: r.WorkOrderNumber||r.OT||'',
-        Comercio: r.Nombre_del_comercio__c||r.Comercio||'',
-        Cuenta: r['Account.Name']||r.Cuenta||'',
-        Ciudad: r.Direcci_n_de_env_o__City__s||r.Ciudad||'',
-        Calle: r.Direcci_n_de_env_o__Street__s||r.Calle||'',
-        Contacto: r.Contacto__c||r.Contacto||'',
-        Horario: r.Horario__c||r.Horario||'',
-        Obs: r.Observaciones__c||r.Obs||'',
-        Estado: r.Status||r.Estado||'',
-        CP: otCp,
-        Dist: dist,
-      };
-    }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
-
-    // 3. Load existing estados if GID_ESTADOS provided
-    if(GID_ESTADOS){
-      try {
-        const estUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_ESTADOS}`;
-        const estRes = await fetch(estUrl);
-        const estCsv = await estRes.text();
-        const estRows = parseCSV(estCsv);
-        estRows.forEach(r=>{
-          const ot = (r.OT||r.WorkOrderNumber||'').toString().trim();
-          const distri = (r.Distribuidor||'').trim().toLowerCase();
-          if(ot && distri === DISTRI_NAME.toLowerCase()){
-            estados[ot] = { estado: r.Estado_Distri||'', obs: r.Observacion||'', fecha: r.Fecha||'' };
-          }
-        });
-      } catch(e){ console.warn('No se pudo cargar estados:', e); }
-    }
-
-    // Load existing estados from Sheets, then render
-    await loadEstadosFromSheets();
-    renderAll();
-  } catch(e){
-    showError('Error cargando datos: ' + e.message);
-  }
-}
-
-// ─── RENDER ──────────────────────────────────────────────────────────────────
-function getEstado(ot){ return estados[String(ot)]?.estado || ''; }
-function getObs(ot){ return estados[String(ot)]?.obs || ''; }
-
-function renderAll(){
-  const q = searchQ.toLowerCase();
-  const visible = allOts.filter(r=>{
-    const est = getEstado(r.OT);
-    if(currentFilter === 'pendiente' && est !== '') return false;
-    if(currentFilter === 'contactado' && est !== 'Contactado') return false;
-    if(currentFilter === 'no-encontrado' && est !== 'No encontrado') return false;
-    if(currentFilter === 'retirado' && est !== 'Retirado') return false;
-    // 'todos' shows everything
-    if(q) return String(r.OT).includes(q) || r.Comercio.toLowerCase().includes(q) || r.Ciudad.toLowerCase().includes(q);
-    return true;
-  });
-
-  // Stats
-  document.getElementById('stat-total').textContent = allOts.length;
-  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
-  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
-  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
-
-  const content = document.getElementById('content');
-  if(!visible.length){
-    content.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div style="font-weight:700;color:#475569">Sin OTs para mostrar</div></div>`;
-    return;
-  }
-
-  // Group by gestión state
-  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
-  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
-  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
-  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
-
-  function sectionHTML(title, color, items, icon){
-    if(!items.length) return '';
-    return `
-      <div class="section-header" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:2px">
-        <span style="font-size:18px">${icon}</span>
-        <span style="font-weight:800;font-size:13px;color:${color}">${title}</span>
-        <span style="background:${color}22;color:${color};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length}</span>
-        <div style="flex:1;height:2px;background:${color}33;border-radius:2px"></div>
-      </div>
-      ${items.map(r=>renderCard(r)).join('')}
-    `;
-  }
-
-  content.innerHTML = `<div class="ot-list">
-    ${sectionHTML('Sin gestión','#f59e0b', sinGestion,'⏳')}
-    ${sectionHTML('Contactado','#3b82f6', contactados,'📞')}
-    ${sectionHTML('No encontrado','#ef4444', noEncontrados,'❌')}
-    ${sectionHTML('Retirado','#10b981', retirados,'✅')}
-  </div>`;
-  // Attach events
-  visible.forEach(r=>attachCard(r));
-}
+function getEstado(ot){ return estados[String(ot)]?.estado||''; }
+function getObs(ot){ return estados[String(ot)]?.obs||''; }
+function getFecha(ot){ return estados[String(ot)]?.fecha||''; }
 
 function estadoClass(est){
   if(est==='Retirado') return 'retirado';
@@ -586,17 +434,60 @@ function estadoClass(est){
   return '';
 }
 
+// ─── MODAL ────────────────────────────────────────────────────
+function openModal(ot, comercio, estadoSugerido){
+  modalOt = String(ot);
+  const current = getEstado(ot);
+  document.getElementById('modal-ot-num').textContent = 'OT #' + ot;
+  document.getElementById('modal-comercio').textContent = comercio;
+  document.getElementById('modal-obs').value = getObs(ot);
+  selectPill(estadoSugerido || current || 'Contactado');
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function selectPill(estado){
+  modalEstado = estado;
+  ['Contactado','No encontrado','Retirado'].forEach(e=>{
+    const id = 'pill-' + e.toLowerCase().replace(/ /g,'-');
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('active', e===estado);
+  });
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display = 'none';
+  modalOt = null; modalEstado = null;
+}
+
+function saveModal(){
+  if(!modalOt || !modalEstado) return;
+  const obs = document.getElementById('modal-obs').value.trim();
+  const fecha = new Date().toLocaleString('es-AR',{
+    day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit'
+  });
+  estados[String(modalOt)] = { estado: modalEstado, obs, fecha };
+  saveEstado(modalOt);
+  const otNum = modalOt;
+  closeModal();
+  toast('✅ OT #' + otNum + ' → ' + modalEstado);
+  renderAll();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────
 function renderCard(r){
   const est = getEstado(r.OT);
   const obs = getObs(r.OT);
+  const fecha = getFecha(r.OT);
   const ec = estadoClass(est);
-  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700">${est}</span>` : '';
+  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:6px">${est}</span>` : '';
+  const mapsUrl = encodeURIComponent((r.Calle||'')+(r.Ciudad?', '+r.Ciudad:'')+', Argentina');
 
   return `
   <div class="ot-card ${ec}" id="card-${r.OT}">
     <div class="ot-card-header">
       <div>
-        <div class="ot-num">OT #${r.OT} ${estBadge}</div>
+        <div class="ot-num">OT #${r.OT}${estBadge}</div>
         <div class="ot-comercio">${r.Comercio||'Sin nombre'}</div>
         ${r.Cuenta&&r.Cuenta!==r.Comercio?`<div class="ot-cuenta">${r.Cuenta}</div>`:''}
       </div>
@@ -605,192 +496,162 @@ function renderCard(r){
     <div class="ot-info">
       ${r.Ciudad?`<div class="ot-info-item"><div class="ot-info-lbl">CIUDAD</div><div class="ot-info-val">📍 ${r.Ciudad}</div></div>`:''}
       ${r.CP?`<div class="ot-info-item"><div class="ot-info-lbl">CP</div><div class="ot-info-val">${r.CP}</div></div>`:''}
-      ${r.Calle?`
-      <div class="ot-info-item" style="grid-column:1/-1">
-        <div class="ot-info-lbl">DIRECCIÓN</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="ot-info-val">${r.Calle}${r.Ciudad?', '+r.Ciudad:''}</span>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.Calle||'')+(r.Ciudad?', '+r.Ciudad:'')+(', Argentina'))}" 
-             target="_blank"
-             style="display:inline-flex;align-items:center;gap:4px;background:#4285F4;color:#fff;text-decoration:none;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">
-            📍 Ver en Maps
-          </a>
-        </div>
-      </div>`:''}
-      ${r.Contacto?`
-      <div class="ot-info-item">
-        <div class="ot-info-lbl">CONTACTO</div>
-        <div class="ot-info-val">
-          <a href="https://wa.me/${r.Contacto.replace(/\D/g,'')}" target="_blank" 
-             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;text-decoration:none;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            ${r.Contacto}
-          </a>
-        </div>
-      </div>`:''}
+      ${r.Calle?`<div class="ot-info-item" style="grid-column:1/-1"><div class="ot-info-lbl">DIRECCIÓN</div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="ot-info-val">${r.Calle}${r.Ciudad?', '+r.Ciudad:''}</span><a href="https://www.google.com/maps/search/?api=1&query=${mapsUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#4285F4;color:#fff;text-decoration:none;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">📍 Maps</a></div></div>`:''}
+      ${r.Contacto?`<div class="ot-info-item"><div class="ot-info-lbl">CONTACTO</div><div class="ot-info-val"><a href="https://wa.me/${r.Contacto.replace(/\D/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>${r.Contacto}</a></div></div>`:''}
       ${r.Horario?`<div class="ot-info-item"><div class="ot-info-lbl">HORARIO</div><div class="ot-info-val">${r.Horario}</div></div>`:''}
     </div>
     ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
-    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}</div>`:''}
+    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:''}
     <div class="ot-actions">
-      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','Contactado')">
+      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Contactado')">
         <span class="icon">📞</span>Contactado
       </button>
-      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','No encontrado')">
+      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','No encontrado')">
         <span class="icon">❌</span>No encontrado
       </button>
-      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,'\'')}','Retirado')">
+      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Retirado')">
         <span class="icon">✅</span>Retirado
       </button>
     </div>
   </div>`;
 }
 
-function attachCard(r){
-  // Action buttons
-  ['Contactado','No encontrado','Retirado'].forEach(action=>{
-    const btn = document.querySelector(`[data-ot="${r.OT}"][data-action="${action}"]`);
-    if(!btn) return;
-    btn.addEventListener('click', ()=>{
-      const obsWrap = document.getElementById(`obs-${r.OT}`);
-      const current = getEstado(r.OT);
-      if(current === action){
-        // Toggle off
-        delete estados[String(r.OT)];
-        obsWrap.classList.remove('show');
-      } else {
-        if(!estados[String(r.OT)]) estados[String(r.OT)] = {};
-        estados[String(r.OT)].estado = action;
-        obsWrap.classList.add('show');
-        document.getElementById(`obstext-${r.OT}`).value = estados[String(r.OT)].obs||'';
-      }
-      updateCard(r);
-    });
+function renderAll(){
+  const q = searchQ.toLowerCase();
+  const visible = allOts.filter(r=>{
+    const est = getEstado(r.OT);
+    if(currentFilter==='pendiente' && est!=='') return false;
+    if(currentFilter==='contactado' && est!=='Contactado') return false;
+    if(currentFilter==='no-encontrado' && est!=='No encontrado') return false;
+    if(currentFilter==='retirado' && est!=='Retirado') return false;
+    if(q) return String(r.OT).includes(q)||r.Comercio.toLowerCase().includes(q)||r.Ciudad.toLowerCase().includes(q);
+    return true;
   });
 
-  // Confirm obs
-  const confirmBtn = document.querySelector(`.obs-confirm[data-ot="${r.OT}"]`);
-  if(confirmBtn){
-    confirmBtn.addEventListener('click', ()=>{
-      const obs = document.getElementById(`obstext-${r.OT}`).value.trim();
-      if(!estados[String(r.OT)]) return;
-      estados[String(r.OT)].obs = obs;
-      estados[String(r.OT)].fecha = new Date().toLocaleString('es-AR');
-      document.getElementById(`obs-${r.OT}`).classList.remove('show');
-      saveEstado(r.OT);
-      updateCard(r);
-      toast(`✅ OT #${r.OT} marcada como ${estados[String(r.OT)].estado}`);
-      // Update stats
-      renderStats();
-    });
+  // Stats
+  document.getElementById('stat-total').textContent    = allOts.length;
+  document.getElementById('stat-pend').textContent     = allOts.filter(r=>!getEstado(r.OT)).length;
+  document.getElementById('stat-visit').textContent    = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
+  document.getElementById('stat-ret').textContent      = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
+
+  const content = document.getElementById('content');
+  if(!visible.length){
+    content.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><div style="font-weight:700;color:#475569">Sin OTs para mostrar</div></div>`;
+    return;
   }
+
+  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
+  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
+  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
+  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
+
+  function sec(title,color,items,icon){
+    if(!items.length) return '';
+    return `<div class="section-header" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:10px;margin-bottom:2px">
+      <span style="font-size:18px">${icon}</span>
+      <span style="font-weight:800;font-size:13px;color:${color}">${title}</span>
+      <span style="background:${color}22;color:${color};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length}</span>
+      <div style="flex:1;height:2px;background:${color}33;border-radius:2px"></div>
+    </div>${items.map(r=>renderCard(r)).join('')}`;
+  }
+
+  content.innerHTML=`<div class="ot-list">
+    ${sec('Sin gestión','#f59e0b',sinGestion,'⏳')}
+    ${sec('Contactado','#3b82f6',contactados,'📞')}
+    ${sec('No encontrado','#ef4444',noEncontrados,'❌')}
+    ${sec('Retirado','#10b981',retirados,'✅')}
+  </div>`;
 }
 
-function updateCard(r){
-  renderAll(); // full re-render to move card to correct section
-}
-
-function renderStats(){
-  document.getElementById('stat-total').textContent = allOts.length;
-  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
-  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
-  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
-}
-
-// ─── SAVE TO SHEETS via Apps Script webhook ──────────────────
-const WEBHOOK_URL = params.get('webhook') || '';
-
+// ─── SAVE ─────────────────────────────────────────────────────
 async function saveEstado(otNum){
-  // Always save locally first
-  try {
-    const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+  try{
+    const key=`alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
     localStorage.setItem(key, JSON.stringify(estados));
-  } catch(e){}
-
-  if(!WEBHOOK_URL || !estados[String(otNum)]) return;
-
-  const payload = {
-    distri: DISTRI_NAME,
-    ot: String(otNum),
-    estado: estados[String(otNum)].estado,
-    obs: estados[String(otNum)].obs||'',
-    fecha: estados[String(otNum)].fecha||new Date().toLocaleString('es-AR'),
-  };
-
-  try {
-    const res = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload),
-      mode: 'no-cors', // Apps Script needs no-cors
-    });
-    // no-cors means we can't read response, but if no error = success
-  } catch(err){
-    console.warn('Error guardando en Sheets:', err);
-  }
+  }catch(e){}
+  if(!WEBHOOK_URL||!estados[String(otNum)]) return;
+  const payload={distri:DISTRI_NAME,ot:String(otNum),estado:estados[String(otNum)].estado,obs:estados[String(otNum)].obs||'',fecha:estados[String(otNum)].fecha||''};
+  try{
+    await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'});
+  }catch(e){}
 }
 
-// ─── LOAD estados from Apps Script GET ───────────────────────
 async function loadEstadosFromSheets(){
   if(!WEBHOOK_URL) return;
-  try {
-    const url = WEBHOOK_URL + '?distri=' + encodeURIComponent(DISTRI_NAME);
-    const res = await fetch(url);
-    const json = await res.json();
-    if(json.ok && json.data){
-      json.data.forEach(r=>{
-        const ot = String(r.OT||'').trim();
-        if(ot){
-          estados[ot] = {
-            estado: r.Estado_Distri||'',
-            obs: r.Observacion||'',
-            fecha: r.Fecha_Distri||'',
-          };
-        }
-      });
-    }
-  } catch(e){
-    console.warn('No se pudo cargar estados desde Sheets:', e);
-  }
+  try{
+    const res=await fetch(WEBHOOK_URL+'?distri='+encodeURIComponent(DISTRI_NAME));
+    const json=await res.json();
+    if(json.ok&&json.data) json.data.forEach(r=>{
+      const ot=String(r.OT||'').trim();
+      if(ot) estados[ot]={estado:r.Estado_Distri||'',obs:r.Observacion||'',fecha:r.Fecha_Distri||''};
+    });
+  }catch(e){}
 }
 
 function showError(msg){
-  document.getElementById('content').innerHTML = `
-    <div class="empty">
-      <div class="empty-icon">⚠️</div>
-      <div style="font-weight:700;color:#475569;margin-bottom:8px">${msg}</div>
-      <div style="font-size:12px;color:#94a3b8">Contactá a Alleata para obtener tu link correcto.</div>
-    </div>`;
+  document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div style="font-weight:700;color:#475569;margin-bottom:8px">${msg}</div><div style="font-size:12px;color:#94a3b8">Contactá a Alleata.</div></div>`;
 }
 
-// ─── EVENTS ──────────────────────────────────────────────────────────────────
-document.getElementById('search').addEventListener('input', e=>{
-  searchQ = e.target.value;
-  renderAll();
-});
+// ─── LOAD DATA ────────────────────────────────────────────────
+async function loadData(){
+  try{
+    const distriRes=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_DISTRI}`);
+    const distris=parseCSV(await distriRes.text());
+    const myDistri=distris.find(d=>{
+      const full=((d.Nombre||d.nombre||'')+' '+(d.Apellido||d.apellido||'')).trim().toLowerCase();
+      return full===DISTRI_NAME.toLowerCase();
+    });
+    if(!myDistri){showError(`No se encontró "${DISTRI_NAME}"`);return;}
+    const nombre=(myDistri.Nombre||myDistri.nombre||'').trim();
+    const apellido=(myDistri.Apellido||myDistri.apellido||'').trim();
+    const radio=parseInt(myDistri.Radio||myDistri.radio||'50')||50;
+    const cp=(myDistri['Codigo Postal']||myDistri['Código Postal']||myDistri.CP||'').toString().replace(/\D/g,'').slice(0,5);
+    const coords=CP_COORDS[cp];
+    document.getElementById('distri-badge').textContent=nombre+' '+apellido;
+    document.getElementById('header-sub').textContent=(coords?'📍 '+cp:'⚠️ Sin coords')+' · Radio '+radio+' km';
+    document.title='Alleata · '+nombre+' '+apellido;
+    if(!coords){showError('CP '+cp+' sin coordenadas.');return;}
 
+    const otsRes=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_OTS}`);
+    const otsRaw=parseCSV(await otsRes.text());
+    allOts=otsRaw.filter(r=>{
+      if(['Despachado','Extraviada'].includes(r.Status||r.Estado||'')) return false;
+      const otCp=extractCP(r); if(!otCp) return false;
+      const c=CP_COORDS[otCp]; if(!c) return false;
+      return haversine(coords[0],coords[1],c[0],c[1])<=radio;
+    }).map(r=>{
+      const otCp=extractCP(r);
+      const c=CP_COORDS[otCp];
+      const dist=c?Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10:null;
+      return{OT:r.WorkOrderNumber||r.OT||'',Comercio:r.Nombre_del_comercio__c||r.Comercio||'',Cuenta:r['Account.Name']||r.Cuenta||'',Ciudad:r.Direcci_n_de_env_o__City__s||r.Ciudad||'',Calle:r.Direcci_n_de_env_o__Street__s||r.Calle||'',Contacto:r.Contacto__c||r.Contacto||'',Horario:r.Horario__c||r.Horario||'',Obs:r.Observaciones__c||r.Obs||'',Estado:r.Status||r.Estado||'',CP:otCp,Dist:dist};
+    }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
+
+    await loadEstadosFromSheets();
+    renderAll();
+  }catch(e){showError('Error: '+e.message);}
+}
+
+// ─── EVENTS ───────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input',e=>{searchQ=e.target.value;renderAll();});
 document.querySelectorAll('.filter-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+  btn.addEventListener('click',()=>{
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
+    currentFilter=btn.dataset.filter;
     renderAll();
   });
 });
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
 
-// Load saved estados from localStorage
-try {
-  const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
-  const saved = localStorage.getItem(key);
-  if(saved) estados = JSON.parse(saved);
-} catch(e){}
+// Load from localStorage
+try{
+  const key=`alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+  const saved=localStorage.getItem(key);
+  if(saved) estados=JSON.parse(saved);
+}catch(e){}
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
-if(!DISTRI_PARAM){
-  showError('Link sin distribuidor. Usá el link que te envió Alleata.');
-} else {
-  loadData();
-}
+if(!DISTRI_PARAM){showError('Link sin distribuidor.');}
+else{loadData();}
 </script>
 </body>
 </html>
