@@ -675,15 +675,21 @@ function App() {
               Cuenta:r['Account.Name']||r.Cuenta||'',Logistica:r.Logistica__c||r.Logistica||'',
               Estado:r.Status||r.Estado||'',Zona:zona,
               Provincia:r.Provincia_limpia||r.Provincia||r.b||'',CP:(()=>{
+              // 1. Try CP_extraido / CP field (strip letter prefix B7600->7600)
               const raw=r.CP_extraido||r.CP||'';
-              // strip letter prefix (B7600->7600, X5151->5151)
               const stripped=raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
               if(stripped.length>=4) return stripped;
-              // try CP embedded in address
+              // 2. Extract from column 'b' = " Buenos Aires B7600APV" -> "7600"
+              const colB=(r.b||'').toString().trim();
+              const mB=colB.match(/[A-Z](\d{4})/);
+              if(mB) return mB[1];
+              const mB2=colB.match(/\b(\d{4,5})\b/);
+              if(mB2) return mB2[1];
+              // 3. Try CP embedded in address
               const addr=(r.Direcci_n_de_env_o__Street__s||r.Calle||'');
               const cpInAddr=addr.match(/[A-Z]?(\d{4,5})/);
               if(cpInAddr&&cpInAddr[1].length>=4) return cpInAddr[1];
-              // infer from ciudad/localidad
+              // 4. Infer from ciudad/localidad
               const ciudad=(r.Direcci_n_de_env_o__City__s||r.Ciudad||'').toLowerCase().trim();
               if(ciudad&&LOCALIDAD_CP[ciudad]) return LOCALIDAD_CP[ciudad];
               return raw;
