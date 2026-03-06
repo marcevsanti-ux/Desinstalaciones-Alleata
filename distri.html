@@ -469,7 +469,31 @@ function renderAll(){
     return;
   }
 
-  content.innerHTML = `<div class="ot-list">${visible.map(r=>renderCard(r)).join('')}</div>`;
+  // Group by gestión state
+  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
+  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
+  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
+  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
+
+  function sectionHTML(title, color, items, icon){
+    if(!items.length) return '';
+    return `
+      <div class="section-header" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:8px;margin-bottom:2px">
+        <span style="font-size:18px">${icon}</span>
+        <span style="font-weight:800;font-size:13px;color:${color}">${title}</span>
+        <span style="background:${color}22;color:${color};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length}</span>
+        <div style="flex:1;height:2px;background:${color}33;border-radius:2px"></div>
+      </div>
+      ${items.map(r=>renderCard(r)).join('')}
+    `;
+  }
+
+  content.innerHTML = `<div class="ot-list">
+    ${sectionHTML('Sin gestión','#f59e0b', sinGestion,'⏳')}
+    ${sectionHTML('Contactado','#3b82f6', contactados,'📞')}
+    ${sectionHTML('No encontrado','#ef4444', noEncontrados,'❌')}
+    ${sectionHTML('Retirado','#10b981', retirados,'✅')}
+  </div>`;
   // Attach events
   visible.forEach(r=>attachCard(r));
 }
@@ -495,7 +519,7 @@ function renderCard(r){
         <div class="ot-comercio">${r.Comercio||'Sin nombre'}</div>
         ${r.Cuenta&&r.Cuenta!==r.Comercio?`<div class="ot-cuenta">${r.Cuenta}</div>`:''}
       </div>
-      ${r.Dist!=null?`<div class="ot-dist-badge">${r.Dist} km</div>`:''}
+      ${r.Dist!=null?`<div class="ot-dist-badge">${r.Dist<2?'En ciudad':r.Dist+' km'}</div>`:''}
     </div>
     <div class="ot-info">
       ${r.Ciudad?`<div class="ot-info-item"><div class="ot-info-lbl">CIUDAD</div><div class="ot-info-val">📍 ${r.Ciudad}</div></div>`:''}
@@ -529,7 +553,7 @@ function renderCard(r){
     ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}</div>`:''}
     <div class="ot-actions">
       <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" data-ot="${r.OT}" data-action="Contactado">
-        <span class="icon">👁</span>Visitado
+        <span class="icon">📞</span>Contactado
       </button>
       <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" data-ot="${r.OT}" data-action="No encontrado">
         <span class="icon">❌</span>No encontrado
