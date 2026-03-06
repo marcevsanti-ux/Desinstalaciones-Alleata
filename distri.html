@@ -3,701 +3,1066 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Alleata · Portal Distribuidor</title>
+  <title>Alleata · Gestión de Desinstalaciones</title>
   <link rel="icon" href="https://alleata.com.ar/favicon.ico"/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
-  <style>
-    :root {
-      --teal: #00BFA5;
-      --teal-dark: #00897B;
-      --teal-deeper: #004D40;
-      --navy: #0A2540;
-      --bg: #F0F7F6;
-      --white: #ffffff;
-      --slate: #64748b;
-      --border: #e2e8f0;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); min-height: 100vh; }
-
-    /* HEADER */
-    .header {
-      background: linear-gradient(135deg, #0A2540 0%, #063D52 60%, #006B5E 100%);
-      padding: 20px 20px 0;
-      position: sticky; top: 0; z-index: 100;
-      box-shadow: 0 4px 24px rgba(0,0,0,.3);
-    }
-    .header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-    .header-logo { height: 28px; filter: brightness(0) invert(1); }
-    .header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.25); }
-    .header-title { color: #fff; font-size: 15px; font-weight: 800; }
-    .header-sub { color: rgba(255,255,255,.55); font-size: 11px; margin-top: 2px; }
-    .distri-badge {
-      margin-left: auto;
-      background: rgba(0,191,165,.2);
-      border: 1px solid rgba(0,191,165,.4);
-      color: #5eead4;
-      border-radius: 99px;
-      padding: 5px 14px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .header-stats {
-      display: flex;
-      gap: 0;
-      border-top: 1px solid rgba(255,255,255,.1);
-      margin: 0 -20px;
-    }
-    .stat-pill {
-      flex: 1;
-      text-align: center;
-      padding: 10px 8px;
-      border-right: 1px solid rgba(255,255,255,.08);
-    }
-    .stat-pill:last-child { border-right: none; }
-    .stat-num { font-size: 20px; font-weight: 900; color: #fff; line-height: 1; }
-    .stat-lbl { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.45); letter-spacing: .8px; margin-top: 3px; }
-
-    /* FILTERS */
-    .filters {
-      padding: 14px 16px;
-      background: #fff;
-      border-bottom: 1px solid var(--border);
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    }
-    .filter-btn {
-      padding: 6px 14px;
-      border-radius: 99px;
-      border: 2px solid var(--border);
-      background: #fff;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      color: var(--slate);
-      transition: all .15s;
-    }
-    .filter-btn.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
-    .search-box {
-      flex: 1; min-width: 140px;
-      padding: 7px 14px;
-      border-radius: 99px;
-      border: 2px solid var(--border);
-      font-family: inherit;
-      font-size: 12px;
-      outline: none;
-      color: var(--navy);
-    }
-    .search-box:focus { border-color: var(--teal); }
-
-    /* OT CARDS */
-    .ot-list { padding: 14px 14px 80px; display: flex; flex-direction: column; gap: 10px; }
-
-    .ot-card {
-      background: #fff;
-      border-radius: 18px;
-      border: 2px solid var(--border);
-      overflow: hidden;
-      transition: box-shadow .2s;
-    }
-    .ot-card.retirado { border-color: #10b981; }
-    .ot-card.contactado { border-color: #3b82f6; }
-    .ot-card.no-encontrado { border-color: #ef4444; }
-
-    .ot-card-header {
-      padding: 14px 16px 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .ot-num { font-size: 13px; font-weight: 900; color: var(--teal-dark); }
-    .ot-comercio { font-size: 15px; font-weight: 800; color: var(--navy); margin-top: 2px; line-height: 1.3; }
-    .ot-cuenta { font-size: 11px; color: var(--slate); margin-top: 2px; }
-
-    .ot-dist-badge {
-      background: #E0F2F1;
-      color: var(--teal-deeper);
-      border-radius: 99px;
-      padding: 3px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .ot-info {
-      padding: 0 16px 10px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .ot-info-item { display: flex; flex-direction: column; gap: 1px; }
-    .ot-info-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; letter-spacing: .6px; }
-    .ot-info-val { font-size: 12px; font-weight: 600; color: var(--navy); line-height: 1.3; }
-    .ot-info-val.full { grid-column: 1 / -1; }
-
-    .ot-obs {
-      margin: 0 16px 10px;
-      background: #f8fafc;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 11px;
-      color: var(--slate);
-      line-height: 1.5;
-      border-left: 3px solid var(--teal);
-    }
-
-    /* ACTION BUTTONS */
-    .ot-actions {
-      padding: 10px 12px 12px;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px;
-      border-top: 1px solid var(--border);
-      background: #fafbfc;
-    }
-    .action-btn {
-      border: none;
-      border-radius: 12px;
-      padding: 10px 6px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      transition: all .15s;
-      border: 2px solid transparent;
-    }
-    .action-btn .icon { font-size: 20px; line-height: 1; }
-    .action-btn.contactado-btn  { background: #dbeafe; color: #1d4ed8; }
-    .action-btn.noenc-btn     { background: #fee2e2; color: #dc2626; }
-    .action-btn.retirado-btn  { background: #d1fae5; color: #059669; }
-    .action-btn.active { border-color: currentColor; transform: scale(1.03); box-shadow: 0 2px 12px rgba(0,0,0,.12); }
-
-    /* OBS INPUT */
-    .obs-input-wrap {
-      padding: 0 12px 12px;
-      background: #fafbfc;
-      display: none;
-    }
-    .obs-input-wrap.show { display: block; }
-    .obs-input {
-      width: 100%;
-      border-radius: 10px;
-      border: 2px solid var(--border);
-      padding: 8px 12px;
-      font-family: inherit;
-      font-size: 12px;
-      resize: none;
-      outline: none;
-      color: var(--navy);
-    }
-    .obs-input:focus { border-color: var(--teal); }
-    .obs-confirm {
-      margin-top: 8px;
-      width: 100%;
-      background: var(--teal-dark);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 10px;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    /* EMPTY STATE */
-    .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
-
-    /* TOAST */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: var(--navy); color: #fff;
-      padding: 12px 22px; border-radius: 99px;
-      font-size: 13px; font-weight: 700;
-      box-shadow: 0 8px 30px rgba(0,0,0,.3);
-      z-index: 999;
-      opacity: 0; transition: opacity .3s;
-      pointer-events: none;
-      white-space: nowrap;
-    }
-    .toast.show { opacity: 1; }
-
-    /* LOADING */
-    .loading { text-align: center; padding: 80px 20px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Responsive */
-    @media (min-width: 600px) {
-      .ot-list { max-width: 640px; margin: 0 auto; }
-      .filters { max-width: 640px; margin: 0 auto; }
-    }
-  </style>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#F0F7F6}#root{min-height:100vh}</style>
 </head>
 <body>
-
-<div class="header">
-  <div class="header-top">
-    <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
-    <div class="header-divider"></div>
-    <div>
-      <div class="header-title">Portal Distribuidor</div>
-      <div class="header-sub" id="header-sub">Cargando...</div>
+  <div id="root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0A2540;">
+      <div style="text-align:center;color:#fff">
+        <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style="height:48px;margin-bottom:20px;filter:brightness(0) invert(1)" onerror="this.style.display='none'"/>
+        <div style="font-size:16px;font-weight:600;color:#99f6e4">Cargando gestión de desinstalaciones...</div>
+      </div>
     </div>
-    <div class="distri-badge" id="distri-badge">...</div>
   </div>
-  <div class="header-stats">
-    <div class="stat-pill"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">TOTAL</div></div>
-    <div class="stat-pill"><div class="stat-num" id="stat-pend" style="color:#fbbf24">—</div><div class="stat-lbl">PENDIENTES</div></div>
-    <div class="stat-pill"><div class="stat-num" id="stat-visit" style="color:#60a5fa">—</div><div class="stat-lbl">CONTACTADAS</div></div>
-    <div class="stat-pill"><div class="stat-num" id="stat-ret" style="color:#34d399">—</div><div class="stat-lbl">RETIRADAS</div></div>
-  </div>
-</div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useEffect } = React;
 
-<div class="filters">
-  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..."/>
-  <button class="filter-btn active" data-filter="todos">Todos</button>
-  <button class="filter-btn" data-filter="pendiente">Pendiente</button>
-  <button class="filter-btn" data-filter="contactado">Contactado</button>
-  <button class="filter-btn" data-filter="no-encontrado">No encontrado</button>
-  <button class="filter-btn" data-filter="retirado">Retirado</button>
-</div>
 
-<div id="content">
-  <div class="loading">
-    <div class="spinner"></div>
-    <div style="font-weight:700;color:#475569;font-size:14px">Cargando tus OTs...</div>
-  </div>
-</div>
+const SHEET_CSV = "https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678";
+const SHEET_DISTRI = "https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751";
+const SHEET_LINK = "https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/edit";
 
-<div class="toast" id="toast"></div>
+// DATA_PLACEHOLDER
 
-<script>
-// ─── CONFIG ─────────────────────────────────────────────────────────────────
-// URL params: ?distri=NOMBRE_APELLIDO&sheet=SHEET_ID&gid=GID_ESTADOS
-// Example: ?distri=Enrique_Arquibola&sheet=1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY&gid=107031751
+const PROV_CANON = {
+  'buenos aires':'Buenos Aires','caba':'CABA','ciudad autónoma':'CABA','ciudad autonoma':'CABA',
+  'córdoba':'Córdoba','cordoba':'Córdoba','santa fe':'Santa Fe',
+  'mendoza':'Mendoza','tucumán':'Tucumán','tucuman':'Tucumán',
+  'salta':'Salta','jujuy':'Jujuy','entre ríos':'Entre Ríos','entre rios':'Entre Ríos',
+  'misiones':'Misiones','corrientes':'Corrientes','chaco':'Chaco','formosa':'Formosa',
+  'santiago del estero':'Santiago del Estero','la rioja':'La Rioja','catamarca':'Catamarca',
+  'san juan':'San Juan','san luis':'San Luis','la pampa':'La Pampa',
+  'río negro':'Río Negro','rio negro':'Río Negro','neuquén':'Neuquén','neuquen':'Neuquén',
+  'chubut':'Chubut','santa cruz':'Santa Cruz','tierra del fuego':'Tierra del Fuego',
+};
 
-const params = new URLSearchParams(location.search);
-const DISTRI_PARAM = params.get('distri') || '';
-const SHEET_ID = params.get('sheet') || '1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY';
-const GID_DISTRI = params.get('gid_distri') || '107031751';      // distributors sheet
-const GID_ESTADOS = params.get('gid_estados') || '';              // estados sheet (TBD)
-const GID_OTS = params.get('gid_ots') || '1843553678';            // OT main sheet
 
-const DISTRI_NAME = DISTRI_PARAM.replace(/_/g,' ');
+const LOCALIDAD_CP = {"guernica":"1748", "general rodriguez":"1748", "presidente peron":"1748", "canuelas":"1814", "cañuelas":"1814", "lujan":"6700", "luján":"6700", "mercedes":"6600", "chivilcoy":"6620", "junin":"6000", "junín":"6000", "lincoln":"6070", "trenque lauquen":"6400", "pehuajo":"6450", "pehuajó":"6450", "olavarria":"7400", "olavarría":"7400", "tandil":"7000", "necochea":"7630", "miramar":"7607", "pinamar":"7167", "villa gesell":"7165", "bahia blanca":"8000", "bahía blanca":"8000", "tres arroyos":"7500", "coronel suarez":"7540", "coronel suárez":"7540", "azul":"7300", "bolivar":"7550", "bolívar":"7550", "9 de julio":"6500", "bragado":"6640", "chacabuco":"6740", "pergamino":"2700", "san nicolas":"2900", "san nicolás":"2900", "baradero":"2942", "campana":"2804", "zarate":"2820", "zárate":"2820", "escobar":"1625", "pilar":"1629", "exaltacion de la cruz":"2806", "carmen de areco":"6725", "san antonio de areco":"2760", "la calera":"5151", "villa carlos paz":"5152", "cosquin":"5166", "cosquín":"5166", "alta gracia":"5186", "rio cuarto":"5800", "río cuarto":"5800", "villa maria":"5900", "villa maría":"5900", "san francisco":"2400", "bell ville":"2550", "rio tercero":"5850", "río tercero":"5850", "monte cristo":"5127", "jesús maria":"5220", "jesus maria":"5220", "rosario":"2000", "santa fe":"3000", "rafaela":"2300", "reconquista":"3560", "venado tuerto":"2600", "villa constitucion":"2900", "casilda":"2170", "mendoza":"5500", "godoy cruz":"5501", "lujan de cuyo":"5507", "luján de cuyo":"5507", "maipu":"5519", "maipú":"5519", "san martin":"5570", "san martín":"5570", "san rafael":"5600", "san miguel de tucuman":"4000", "san miguel de tucumán":"4000", "tucuman":"4000", "tucumán":"4000", "yerba buena":"4107", "tafi viejo":"4103", "salta":"4400", "general guemes":"4430", "general güemes":"4430", "neuquen":"8300", "neuquén":"8300", "san martin de los andes":"8370", "villa la angostura":"8407", "bariloche":"8400", "viedma":"8500", "cipolletti":"8324", "general roca":"8332", "posadas":"3300", "resistencia":"3500", "corrientes":"3400", "parana":"3100", "paraná":"3100", "concordia":"3200", "san salvador de jujuy":"4600", "jujuy":"4600", "palpalá":"4612", "formosa":"3600", "comodoro rivadavia":"9000", "rawson":"9100", "trelew":"9100", "puerto madryn":"9120", "santa rosa":"6300"};
 
-// ─── STATE ──────────────────────────────────────────────────────────────────
-let allOts = [];
-let estados = {};   // { [OT_num]: { estado, obs, fecha } }
-let currentFilter = 'todos';
-let searchQ = '';
+const AMBA_NORTE = new Set(["agronomia","almagro","balvanera","balvanera caba","beccar","belgrano","bella vista","boulogne","caballito","campana","chacarita","coghlan","colegiales","constitucion","devoto","don torcuato","el talar","el talar zona norte","escobar","exaltacion de la cruz","flores","floresta","florida","florida oeste","general pacheco","general rodriguez","grand bourg","hurlingham","ituzaingo","jose c paz","liniers","los polvorines","lujan","malvinas argentinas","martinez","mataderos caba","monserrat","monte castro","moreno","munro","munro zona norte","nordelta","nunez","olivos","once","palermo","palermo caba","palermo hollywood","palermo soho","parque avellaneda","parque chas","paternal","pilar","pilar bs as","pilar centro","puerto madero","recoleta","retiro","rincon de milberg","saavedra","san fernando","san isidro","san martin","san miguel","san miguel centro","san nicolas","san nicolas caba","san telmo","tigre","tigre centro","velez sarsfield","versalles","vicente lopez","villa adelina","villa crespo","villa del parque","villa del parque caba","villa luro","villa lynch","villa pueyrredon","villa real","villa urquiza","virreyes","zarate"]);
+const AMBA_SUR   = new Set(["almirante brown","avellaneda","avellaneda centro","banfield","barracas","berazategui","berazategui centro","bernal","bernal oeste","boedo","canning","canuelas","cañuelas","claypole","constitucion","constitución","dock sud","el jaguel","esteban echeverria","ezeiza","ezpeleta","florencio varela","glew","guernica","ianus oeste","la boca","lanus","lanus este","lanus oeste","lomas","lomas de zamora","lomas de zamora centro","longchamps","monte grande","nueva pompeya","parque patricios","piñeyro","pompeya","presidente peron","quilmes","quilmes centro","quilmes oeste","ranelagh","remedios de escalada","saenz peña","san cristobal","san jose","san vicente","sarandi","souza","temperley","tristan suarez","tristán suárez","varela","villa dominico","villa elisa","villa lugano","villa riachuelo","villa soldati","villa zagala","wilde"]);
+const AMBA_OESTE = new Set(["aldo bonzi","almagro","caballito","castelar","ciudad evita","el palomar","flores","floresta","general las heras","gonzalez catan","gonzalez catán","gregorio de laferrere","haedo","isidro casanova","ituzaingo centro","la matanza","laferrere","liniers","maipu","maipú","marcos paz","merlo","monte castro","moron","moron centro","once","palermo","rafael castillo","ramos mejia","san justo","tablada","tapiales","versalles","villa lobos","villa luro","villa luzuriaga","villa madero","villa tesei"]);
+const CABA_LOCS  = new Set(["agronomia","almagro","balvanera caba","barracas","belgrano","boedo","buenos aires","caba","caballito","capital federal","chacarita","ciudad autonoma de buenos aires","ciudad autónoma de buenos aires","ciudad de buenos aires","coghlan","colegiales","constitucion","devoto","flores","flores caba","floresta","la boca","liniers","mataderos","mataderos caba","monserrat","monte castro","nueva pompeya","nunez","palermo","palermo caba","parque avellaneda","parque chas","parque patricios","paternal","pompeya","puerto madero","recoleta","retiro","saavedra","san cristobal","san nicolas caba","san telmo","versalles","villa crespo","villa del parque","villa del parque caba","villa general mitre","villa lugano","villa luro","villa pueyrredon","villa real","villa riachuelo","villa santa rita","villa soldati","villa urquiza"]);
 
-// ─── UTILS ──────────────────────────────────────────────────────────────────
+function getAmbaSubzona(ciudad){
+  const c=(ciudad||'').toLowerCase().trim();
+  if(!c) return 'Sin ciudad';
+  if(CABA_LOCS.has(c)) return 'CABA';
+  if(AMBA_NORTE.has(c)) return 'Zona Norte';
+  if(AMBA_SUR.has(c))   return 'Zona Sur';
+  if(AMBA_OESTE.has(c)) return 'Zona Oeste';
+  return null;
+}
 function parseCSV(csv){
-  const lines = csv.split('\n').filter(l=>l.trim());
-  if(lines.length < 2) return [];
-  const heads = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  const lines=csv.split('\n').filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const heads=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
   return lines.slice(1).map(line=>{
-    const vals=[]; let cur='', inQ=false;
-    for(const ch of line){
-      if(ch==='"'){inQ=!inQ;}
-      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
-      else{cur+=ch;}
-    }
+    const vals=[];let cur='',inQ=false;
+    for(const ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}else{cur+=ch;}}
     vals.push(cur.trim());
-    const o={};
-    heads.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});
-    return o;
+    const o={};heads.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});return o;
   });
 }
-
-function toast(msg, duration=2200){
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), duration);
+function normProv(p) {
+  if (!p) return 'Sin dato';
+  const low = (p||'').toLowerCase().trim();
+  for (const [k,v] of Object.entries(PROV_CANON)) {
+    if (low.startsWith(k)) return v;
+  }
+  return 'Sin dato';
 }
 
+function getSector(prov, zona) {
+  if ((prov === 'Buenos Aires' || prov === 'CABA') && (zona === 'GBA' || zona === 'CABA')) {
+    return 'Buenos Aires — AMBA';
+  }
+  if (prov === 'Buenos Aires' || prov === 'CABA') {
+    return 'Buenos Aires — Interior';
+  }
+  return prov;
+}
+
+const ESTADO_C = {
+  'Pendiente':'#f59e0b','En Proceso':'#3b82f6','Extraviada':'#ef4444','Despachado':'#10b981'
+};
+const ZONA_C = {
+  CABA:{bg:"#dbeafe",text:"#1d4ed8",bd:"#93c5fd"},
+  GBA:{bg:"#d1fae5",text:"#065f46",bd:"#6ee7b7"},
+  PBA:{bg:"#fef3c7",text:"#92400e",bd:"#fcd34d"},
+  INTERIOR:{bg:"#ede9fe",text:"#5b21b6",bd:"#c4b5fd"},
+  "Sin Zona":{bg:"#f1f5f9",text:"#475569",bd:"#cbd5e1"},
+};
+
+const CP_COORDS = {"1005":[-34.6037,-58.3816],"1013":[-34.5926,-58.3742],"1014":[-34.526,-58.488],"1018":[-34.6083,-58.4083],"1019":[-34.6037,-58.3816],"1020":[-34.6037,-58.3947],"1029":[-34.6037,-58.3816],"1045":[-34.6155,-58.3947],"1046":[-34.6155,-58.3947],"1048":[-34.6155,-58.3947],"1059":[-34.627,-58.3816],"1062":[-34.5926,-58.3742],"1070":[-34.6037,-58.3947],"1080":[-34.627,-58.3947],"1096":[-34.6037,-58.3816],"1098":[-34.6155,-58.3816],"1102":[-34.6037,-58.3816],"1104":[-34.6704,-58.4647],"1107":[-34.642,-58.4047],"1112":[-34.588,-58.42],"1113":[-34.588,-58.42],"1114":[-34.6037,-58.3816],"1175":[-34.6037,-58.3816],"1179":[-34.6083,-58.4083],"1180":[-34.5827,-58.427],"1181":[-34.6037,-58.3816],"1184":[-34.6083,-58.4083],"1221":[-34.6037,-58.3816],"1266":[-34.639,-58.378],"1289":[-34.639, -58.378],"1288":[-34.639,-58.378],"1406":[-34.637,-58.4647],"1407":[-34.637,-58.4647],"1414":[-34.598,-58.447],"1417":[-34.627,-58.48],"1419":[-34.575,-58.465],"1425":[-34.588,-58.42],"1426":[-34.598,-58.447],"1427":[-34.575,-58.46],"1428":[-34.559,-58.447],"1429":[-34.559,-58.447],"1431":[-34.6704,-58.5047],"1437":[-34.6037,-58.3816],"1439":[-34.7,-58.53],"1604":[-34.476,-58.52],"1605":[-34.536,-58.52],"1607":[-34.499,-58.543],"1611":[-34.46,-58.62],"1614":[-34.613,-58.63],"1615":[-34.46,-58.62],"1617":[-34.46,-58.65],"1618":[-34.445,-58.645],"1625":[-34.349,-58.797],"1626":[-34.349,-58.797],"1627":[-34.379,-58.732],"1629":[-34.458,-58.914],"1631":[-34.392,-58.853],"1635":[-34.381,-58.831],"1639":[-34.392,-58.853],"1640":[-34.492,-58.509],"1643":[-34.468,-58.549],"1645":[-34.427,-58.57],"1646":[-34.427,-58.57],"1648":[-34.426,-58.579],"1650":[-34.567,-58.539],"1651":[-34.476,-58.52],"1653":[-34.556,-58.554],"1655":[-34.528,-58.57],"1657":[-34.588,-58.658],"1660":[-34.514,-58.76],"1663":[-34.539,-58.706],"1665":[-34.514,-58.76],"1667":[-34.444,-58.71],"1670":[-34.366,-58.739],"1673":[-34.539,-58.706],"1674":[-34.61,-58.525],"1676":[-34.608,-58.525],"1681":[-34.582,-58.674],"1684":[-34.616,-58.568],"1686":[-34.587,-58.642],"1687":[-34.588,-58.658],"1688":[-34.613,-58.63],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1712":[-34.657,-58.653],"1714":[-34.659,-58.665],"1736":[-34.563,-58.867],"1738":[-34.643,-58.79],"1741":[-34.929,-58.979],"1742":[-34.643,-58.79],"1744":[-34.643,-58.79],"1746":[-34.604,-58.937],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1754":[-34.681,-58.557],"1757":[-34.748,-58.597],"1758":[-34.775,-58.63],"1759":[-34.775,-58.63],"1763":[-34.815,-58.648],"1765":[-34.736,-58.591],"1766":[-34.703,-58.527],"1805":[-34.847,-58.515],"1807":[-34.84,-58.532],"1812":[-34.894,-58.574],"1814":[-34.901,-58.882],"1821":[-34.7,-58.405],"1823":[-34.659,-58.424],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1839":[-34.83,-58.456],"1842":[-34.822,-58.464],"1846":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1865":[-34.958,-58.468],"1875":[-34.705,-58.315],"1876":[-34.72,-58.26],"1878":[-34.72,-58.26],"1879":[-34.72,-58.26],"1880":[-34.763,-58.208],"1881":[-34.783,-58.235],"1882":[-34.802,-58.211],"1884":[-34.763,-58.208],"1886":[-34.836,-58.193],"1888":[-34.82,-58.273],"1893":[-34.959,-58.056],"1896":[-34.878,-57.992],"1897":[-34.866,-57.997],"1900":[-34.9205,-57.9536],"1902":[-34.9205,-57.9536],"1903":[-34.97,-57.98],"1904":[-34.9205,-57.9536],"1910":[-34.9205,-57.9536],"1913":[-35.122,-57.52],"1917":[-35.376,-57.338],"1984":[-34.995,-58.006],"1987":[-35.502,-58.325],"2000":[-32.9468,-60.6393],"2001":[-32.9468,-60.6393],"2002":[-32.9468,-60.6393],"2003":[-32.9468,-60.6393],"2005":[-32.9468,-60.6393],"2008":[-32.9468,-60.6393],"2011":[-32.9468,-60.6393],"2013":[-32.9468,-60.6393],"2109":[-33.258,-60.836],"2113":[-33.489,-60.564],"2121":[-33.017,-60.558],"2124":[-33.052,-60.627],"2125":[-33.093,-60.869],"2134":[-31.527,-64.295],"2143":[-32.78,-60.75],"2152":[-32.856,-60.728],"2156":[-32.947,-60.759],"2170":[-33.043,-61.165],"2173":[-33.277,-61.356],"2183":[-33.147,-61.638],"2200":[-32.748,-60.734],"2202":[-32.705,-60.722],"2214":[-32.032,-61.564],"2252":[-32.03,-61.213],"2258":[-31.364,-61.137],"2300":[-31.2532,-61.4868],"2322":[-30.938,-61.558],"2340":[-29.885,-61.944],"2419":[-30.999,-62.022],"2421":[-30.708,-62.003],"2432":[-31.718,-63.062],"2434":[-31.528,-63.061],"2438":[-30.999,-61.544],"2500":[-32.808,-61.394],"2505":[-32.689,-61.507],"2550":[-32.623,-62.69],"2580":[-32.698,-62.101],"2601":[-33.528,-62.001],"2630":[-33.462,-61.482],"2671":[-33.772,-62.005],"2700":[-33.89,-60.571],"2720":[-33.887,-60.952],"2800":[-34.098,-59.027],"2804":[-34.163,-58.956],"2812":[-34.251,-59.097],"2820":[-33.011,-58.52],"2840":[-33.028,-59.333],"2900":[-33.3347,-60.2117],"2918":[-33.438,-60.668],"2919":[-33.235,-60.322],"2942":[-33.812,-59.502],"3000":[-31.6333,-60.7],"3014":[-31.549,-60.647],"3016":[-31.671,-60.766],"3017":[-31.703,-60.77],"3040":[-30.784,-60.598],"3060":[-29.232,-61.774],"3070":[-30.323,-61.235],"3100":[-31.7333,-60.5167],"3101":[-31.807,-60.528],"3102":[-31.7333,-60.5167],"3104":[-31.7333,-60.5167],"3107":[-31.792,-60.468],"3190":[-30.742,-59.642],"3196":[-30.015,-59.53],"3202":[-31.3933,-58.0167],"3206":[-31.065,-57.856],"3260":[-32.4833,-58.2333],"3269":[-33.011,-58.52],"3283":[-32.0,-58.167],"3300":[-27.3671,-55.896],"3301":[-27.3671,-55.896],"3306":[-27.92,-55.91],"3315":[-27.601,-55.327],"3340":[-28.56,-56.045],"3342":[-28.05,-56.016],"3350":[-27.914,-55.759],"3352":[-27.482,-55.957],"3360":[-27.485,-55.123],"3362":[-27.056,-55.037],"3364":[-26.996,-54.957],"3370":[-25.5956,-54.5714],"3376":[-25.991,-54.618],"3378":[-25.5956,-54.5714],"3384":[-26.562,-54.957],"3385":[-27.149,-55.556],"3400":[-27.4806,-58.8341],"3402":[-27.4806,-58.8341],"3450":[-29.1442,-59.2625],"3460":[-29.7925,-57.9908],"3470":[-29.182,-58.082],"3500":[-27.4514,-58.9867],"3506":[-27.4514,-58.9867],"3514":[-27.406,-59.057],"3518":[-27.057,-58.82],"3540":[-27.584,-60.014],"3553":[-29.243,-61.627],"3560":[-29.143,-59.633],"3561":[-29.113,-59.634],"3600":[-26.1775,-58.1781],"3606":[-25.729,-59.112],"3610":[-25.177,-57.72],"3615":[-26.1775,-58.1781],"3630":[-24.711,-60.59],"3636":[-23.55,-61.47],"3700":[-26.7871,-60.4394],"3703":[-26.599,-60.539],"3705":[-27.557,-60.643],"3708":[-26.638,-60.011],"3714":[-26.906,-62.658],"3722":[-27.062,-61.182],"3730":[-27.223,-61.188],"3731":[-27.223,-61.188],"3732":[-27.441,-61.305],"4000":[-26.8083,-65.2176],"4103":[-26.727,-65.26],"4105":[-26.8083,-65.2176],"4107":[-26.817,-65.32],"4142":[-27.326,-65.498],"4151":[-26.8083,-65.2176],"4152":[-27.574,-65.585],"4178":[-26.8083,-65.2176],"4179":[-26.8083,-65.2176],"4200":[-27.7951,-64.2615],"4220":[-27.4967,-64.9244],"4300":[-27.7951,-64.2615],"4400":[-24.7821,-65.4232],"4402":[-24.7821,-65.4232],"4404":[-24.7821,-65.4232],"4405":[-24.977,-65.586],"4408":[-24.7821,-65.4232],"4414":[-24.7821,-65.4232],"4430":[-24.667,-65.054],"4500":[-24.227,-64.864],"4512":[-23.806,-64.784],"4530":[-23.1325,-64.3267],"4535":[-23.1325,-64.3267],"4560":[-22.5097,-63.7989],"4562":[-22.5097,-63.7989],"4600":[-24.1857,-65.2994],"4603":[-24.384,-65.118],"4608":[-24.384,-65.118],"4618":[-23.742,-65.497],"4624":[-23.57,-65.394],"4650":[-22.5097,-63.7989],"4700":[-28.4696,-65.7852],"4703":[-28.4696,-65.7852],"4707":[-28.4696,-65.7852],"4718":[-28.647,-65.67],"4723":[-28.4696,-65.7852],"4750":[-27.654,-67.028],"5000":[-31.4135,-64.1811],"5001":[-31.4135,-64.1811],"5002":[-31.4135,-64.1811],"5003":[-31.4135,-64.1811],"5004":[-31.4135,-64.1811],"5006":[-31.4135,-64.1811],"5008":[-31.4135,-64.1811],"5010":[-31.4135,-64.1811],"5011":[-31.4135,-64.1811],"5012":[-31.4135,-64.1811],"5014":[-31.4135,-64.1811],"5016":[-31.4135,-64.1811],"5020":[-31.4135,-64.1811],"5022":[-31.4135,-64.1811],"5101":[-31.568,-64.368],"5105":[-31.294,-64.295],"5121":[-31.856,-64.306],"5123":[-31.856,-64.306],"5127":[-31.276,-63.614],"5145":[-31.654,-64.435],"5147":[-31.4135,-64.1811],"5152":[-31.427,-64.499],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5153":[-31.427,-64.499],"5155":[-31.359,-64.588],"5158":[-31.3,-64.537],"5164":[-31.232,-64.481],"5166":[-31.258,-64.464],"5168":[-31.22,-64.552],"5172":[-31.079,-64.487],"5174":[-31.043,-64.479],"5176":[-30.984,-64.479],"5178":[-30.97,-64.493],"5180":[-30.97,-64.493],"5186":[-31.654,-64.435],"5187":[-31.654,-64.435],"5189":[-31.714,-64.486],"5191":[-31.95,-64.558],"5194":[-31.984,-64.553],"5196":[-32.064,-64.528],"5220":[-30.981,-64.092],"5231":[-30.805,-63.92],"5236":[-30.828,-63.577],"5250":[-29.888,-63.688],"5274":[-29.184,-66.851],"5280":[-30.727,-64.802],"5300":[-29.4128,-66.8551],"5301":[-29.4128,-66.8551],"5350":[-29.918,-68.056],"5357":[-28.761,-68.219],"5360":[-29.16,-67.486],"5400":[-31.5375,-68.5364],"5402":[-31.5375,-68.5364],"5411":[-31.593,-68.568],"5413":[-31.481,-68.569],"5425":[-31.65,-68.536],"5460":[-30.233,-68.746],"5500":[-32.8908,-68.8272],"5502":[-32.927,-68.838],"5504":[-32.927,-68.838],"5505":[-33.05,-68.884],"5507":[-33.05,-68.884],"5509":[-33.201,-69.003],"5517":[-33.05,-68.884],"5519":[-32.848,-68.787],"5521":[-32.848,-68.787],"5523":[-32.848,-68.787],"5527":[-32.848,-68.787],"5539":[-35.158,-70.072],"5541":[-32.835,-68.853],"5545":[-32.587,-69.345],"5560":[-33.573,-69.021],"5569":[-33.688,-69.076],"5570":[-33.081,-68.467],"5573":[-33.134,-68.458],"5577":[-33.18,-68.474],"5584":[-33.058,-68.349],"5590":[-33.468,-67.557],"5592":[-33.468,-67.557],"5594":[-33.468,-67.557],"5596":[-32.8908,-68.8272],"5600":[-34.6177,-68.3301],"5602":[-34.6177,-68.3301],"5612":[-35.158,-70.072],"5613":[-35.473,-69.586],"5620":[-35.006,-67.689],"5700":[-33.2955,-66.3356],"5701":[-33.2955,-66.3356],"5702":[-33.2955,-66.3356],"5730":[-33.67,-65.463],"5800":[-33.1232,-64.3493],"5801":[-33.1232,-64.3493],"5808":[-33.1232,-64.3493],"5843":[-33.633,-64.595],"5850":[-32.177,-64.116],"5854":[-32.198,-64.255],"5856":[-32.198,-64.255],"5864":[-32.244,-64.467],"5870":[-31.944,-65.158],"5875":[-31.944,-65.158],"5879":[-31.944,-65.158],"5885":[-31.944,-65.158],"5889":[-31.944,-65.158],"5900":[-32.4072,-63.2409],"5903":[-32.4072,-63.2409],"5933":[-32.234,-64.0],"5960":[-31.627,-63.599],"5972":[-31.682,-63.878],"5984":[-32.781,-63.505],"6000":[-34.5667,-60.9167],"6022":[-34.5667,-60.9167],"6053":[-35.328,-62.507],"6070":[-34.864,-61.529],"6077":[-34.864,-61.529],"6100":[-34.183,-62.712],"6105":[-35.596,-63.286],"6120":[-34.125,-63.4],"6134":[-34.125,-63.4],"6200":[-35.043,-64.248],"6230":[-35.031,-63.015],"6241":[-35.648,-63.225],"6242":[-35.031,-63.015],"6303":[-36.668,-64.294],"6304":[-36.62,-64.293],"6319":[-36.218,-65.438],"6352":[-36.946,-65.568],"6360":[-35.656,-63.751],"6385":[-36.173,-64.931],"6411":[-36.38,-63.783],"6450":[-35.845,-61.895],"6455":[-35.997,-62.43],"6555":[-36.594,-61.752],"6600":[-34.652,-59.43],"6605":[-34.967,-59.287],"6620":[-34.9,-60.014],"6648":[-34.91,-60.312],"6665":[-36.781,-62.109],"6700":[-34.5696,-59.1076],"6702":[-34.5696,-59.1076],"6708":[-34.476,-59.084],"6725":[-34.373,-59.839],"6748":[-34.55,-60.972],"7000":[-37.325,-59.1392],"7011":[-37.325,-59.1392],"7105":[-36.363,-56.717],"7106":[-36.363,-56.717],"7107":[-36.543,-56.684],"7108":[-36.989,-56.677],"7109":[-36.355,-56.654],"7111":[-36.355,-56.654],"7150":[-37.156,-58.486],"7165":[-37.332,-56.983],"7167":[-37.109,-56.856],"7174":[-37.643,-57.706],"7203":[-36.772,-59.1],"7220":[-35.438,-58.831],"7260":[-35.635,-59.783],"7263":[-36.038,-60.142],"7300":[-36.7756,-59.8578],"7303":[-36.353,-59.98],"7400":[-36.8921,-60.3224],"7505":[-38.863,-60.016],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"7631":[-38.554,-58.746],"7792":[-37.366,-57.371],"7802":[-37.366,-57.371],"8000":[-38.7183,-62.2663],"8001":[-38.7183,-62.2663],"8002":[-38.7183,-62.2663],"8003":[-38.7183,-62.2663],"8105":[-38.83,-62.303],"8109":[-38.878,-62.073],"8138":[-39.007,-62.082],"8148":[-39.488,-62.679],"8150":[-38.712,-61.909],"8153":[-38.989,-61.259],"8168":[-38.132,-62.011],"8200":[-37.38,-64.605],"8201":[-37.38,-64.605],"8233":[-38.934,-69.229],"8300":[-38.9516,-68.0591],"8302":[-38.9516,-68.0591],"8303":[-38.823,-68.059],"8304":[-38.9516,-68.0591],"8305":[-38.351,-68.77],"8307":[-39.033,-67.583],"8309":[-38.826,-68.125],"8316":[-38.935,-68.236],"8318":[-38.935,-68.236],"8319":[-37.735,-68.678],"8322":[-38.934,-69.229],"8324":[-38.944,-67.994],"8325":[-38.994,-67.965],"8326":[-39.028,-67.497],"8328":[-39.009,-67.457],"8332":[-39.033,-67.583],"8334":[-39.026,-67.382],"8336":[-39.101,-67.078],"8337":[-39.142,-66.978],"8340":[-38.899,-70.059],"8345":[-38.956,-70.904],"8347":[-38.524,-70.403],"8351":[-37.87,-70.059],"8353":[-37.386,-70.264],"8360":[-39.285,-65.668],"8364":[-39.157,-66.146],"8370":[-40.1571,-71.3538],"8371":[-39.948,-71.07],"8400":[-41.1335,-71.3103],"8401":[-41.1335,-71.3103],"8402":[-41.1335,-71.3103],"8403":[-40.662,-71.662],"8407":[-40.758,-71.65],"8418":[-41.325,-69.555],"8430":[-41.959,-71.533],"8431":[-42.057,-71.637],"8500":[-40.8135,-62.9967],"8501":[-40.8135,-62.9967],"8503":[-40.574,-62.399],"8504":[-40.793,-62.984],"8520":[-40.734,-64.959],"8521":[-40.734,-64.959],"8532":[-41.598,-65.358],"9000":[-45.8645,-67.4977],"9002":[-45.8645,-67.4977],"9003":[-45.8645,-67.4977],"9008":[-45.8645,-67.4977],"9010":[-45.8645,-67.4977],"9011":[-46.438,-67.522],"9015":[-46.578,-67.923],"9017":[-46.538,-68.002],"9020":[-45.581,-69.062],"9040":[-46.558,-70.929],"9050":[-47.751,-65.896],"9100":[-43.249,-65.309],"9103":[-43.3,-65.103],"9105":[-43.282,-65.536],"9120":[-42.768,-65.036],"9200":[-42.9073,-71.3297],"9211":[-42.27,-71.27],"9217":[-42.518,-71.27],"9301":[-49.331,-72.884],"9303":[-50.002,-68.899],"9310":[-49.31,-67.701],"9311":[-48.784,-70.253],"9400":[-51.623,-69.2168],"9402":[-51.623,-69.2168],"9403":[-51.623,-69.2168],"9405":[-50.337,-72.265],"9407":[-51.538,-72.324],"9408":[-51.538,-72.324],"9420":[-53.783,-67.723]};
+
+// ── MODAL DETALLE PROVINCIA ───────────────────────────────────────────────────
 function haversine(lat1,lon1,lat2,lon2){
-  const R=6371, toRad=x=>x*Math.PI/180;
-  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const R=6371,toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1);
   const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return R*2*Math.asin(Math.sqrt(a));
 }
 
-// ─── CP COORDS (subset needed for distance) ─────────────────────────────────
-const CP_COORDS = {"1005":[-34.6037,-58.3816],"1014":[-34.526,-58.488],"1425":[-34.588,-58.42],"1604":[-34.476,-58.52],"1625":[-34.349,-58.797],"1629":[-34.458,-58.914],"1640":[-34.492,-58.509],"1650":[-34.567,-58.539],"1657":[-34.588,-58.658],"1663":[-34.539,-58.706],"1700":[-34.617,-58.557],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1714":[-34.659,-58.665],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1757":[-34.748,-58.597],"1805":[-34.847,-58.515],"1821":[-34.7,-58.405],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1875":[-34.705,-58.315],"1880":[-34.763,-58.208],"1886":[-34.836,-58.193],"1900":[-34.9205,-57.9536],"1984":[-34.995,-58.006],"2000":[-32.9468,-60.6393],"2800":[-34.098,-59.027],"2900":[-33.3347,-60.2117],"3000":[-31.6333,-60.7],"3100":[-31.7333,-60.5167],"3300":[-27.3671,-55.896],"3400":[-27.4806,-58.8341],"3500":[-27.4514,-58.9867],"3600":[-26.1775,-58.1781],"4000":[-26.8083,-65.2176],"4400":[-24.7821,-65.4232],"4600":[-24.1857,-65.2994],"5000":[-31.4135,-64.1811],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5500":[-32.8908,-68.8272],"5800":[-33.1232,-64.3493],"5900":[-32.4072,-63.2409],"6000":[-34.5667,-60.9167],"6700":[-34.5696,-59.1076],"7000":[-37.325,-59.1392],"7174":[-37.643,-57.706],"7300":[-36.7756,-59.8578],"7400":[-36.8921,-60.3224],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"8000":[-38.7183,-62.2663],"8300":[-38.9516,-68.0591],"8400":[-41.1335,-71.3103],"8500":[-40.8135,-62.9967],"9000":[-45.8645,-67.4977],"9400":[-51.623,-69.2168]};
+function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
+  const [ciudadSel, setCiudadSel] = useState(null);
+  const [q, setQ] = useState('');
+  const [ef, setEf] = useState('Todos');
 
-function extractCP(r){
-  const raw = (r.CP_extraido||r.CP||'');
-  const stripped = raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
-  if(stripped.length>=4) return stripped;
-  const colB = (r.b||'').toString().trim();
-  const mB = colB.match(/[A-Z](\d{4})/);
-  if(mB) return mB[1];
-  const mB2 = colB.match(/\b(\d{4,5})\b/);
-  if(mB2) return mB2[1];
-  return '';
-}
+  const isAmba = !!(sector && sector.includes('AMBA'));
 
-// ─── LOAD DATA ───────────────────────────────────────────────────────────────
-async function loadData(){
-  try {
-    // 1. Load distribuidor info
-    const distriUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_DISTRI}`;
-    const distriRes = await fetch(distriUrl);
-    const distriCsv = await distriRes.text();
-    const distris = parseCSV(distriCsv);
+  // Compute distribuidores for this province
+  const [distrisModal, setDistrisModal] = useState([]);
+  useEffect(()=>{
+    if(!allData||!cpCoords) return;
+    // sector is like 'Córdoba' or 'Buenos Aires — Interior'
+    const provName = sector.split(' — ')[0];
+    const DISTRI_KEY = 'alleata_distri';
+    const sheetD = (()=>{ try{return localStorage.getItem(DISTRI_KEY)||''}catch(e){return ''} })();
+    const SHEET_DISTRI_URL = sheetD || 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751';
+    fetch(SHEET_DISTRI_URL).then(r=>r.text()).then(csv=>{
+      const rows = parseCSV(csv);
+      const mapped = rows.filter(r=>(r.Nombre||r.nombre||'').trim()).map((r,i)=>{
+        const nombre=(r.Nombre||r.nombre||'').trim();
+        const apellido=(r.Apellido||r.apellido||'').trim();
+        const prov=(r.Provincia||r.provincia||'').trim();
+        const cp=(r['Codigo Postal']||r['Código Postal']||r.CP||'').toString().replace(/\D/g,'').slice(0,5);
+        const radio=parseInt(r.Radio||r.radio||'50')||50;
+        const cpNum=parseInt(cp)||0;
+        const coords=cpNum?cpCoords[cpNum]:null;
+        return {id:i,nombre,apellido,prov,radio,lat:coords?coords[0]:null,lon:coords?coords[1]:null};
+      }).filter(d=>{
+        // only distris whose province matches this sector
+        const dp = normProv(d.prov);
+        return dp === provName || d.prov.toLowerCase().includes(provName.toLowerCase());
+      });
+      // For each distri, compute which OTs are in their radius
+      const enriched = mapped.map(d=>{
+        if(!d.lat) return {...d, assignedOts:[]};
+        const assigned = ots.filter(r=>{
+          if(['Despachado','Extraviada'].includes(r.Estado)) return false;
+          const m=(r.CP||'').match(/\d{4,5}/);
+          if(!m) return false;
+          const c=cpCoords[parseInt(m[0])];
+          if(!c) return false;
+          return haversine(d.lat,d.lon,c[0],c[1])<=d.radio;
+        }).map(r=>{
+          const m=(r.CP||'').match(/\d{4,5}/);
+          const c=cpCoords[parseInt(m[0])];
+          return {...r, distADistri: Math.round(haversine(d.lat,d.lon,c[0],c[1])*10)/10};
+        }).sort((a,b)=>a.distADistri-b.distADistri);
+        return {...d, assignedOts: assigned};
+      });
+      setDistrisModal(enriched);
+    }).catch(()=>{});
+  },[sector]);
 
-    // Find this distribuidor by name match
-    const myDistri = distris.find(d=>{
-      const full = ((d.Nombre||d.nombre||'')+' '+(d.Apellido||d.apellido||'')).trim().toLowerCase();
-      return full === DISTRI_NAME.toLowerCase() || DISTRI_PARAM.toLowerCase().replace(/_/g,' ') === full;
-    });
+  // OTs NOT covered by any distri (in this province, pending/en proceso)
+  const otsConDistri = new Set(distrisModal.flatMap(d=>d.assignedOts.map(r=>r.OT)));
+  const otsSinDistri = ots.filter(r=>!['Despachado','Extraviada'].includes(r.Estado)&&!otsConDistri.has(r.OT));
 
-    if(!myDistri){
-      showError(`No se encontró el distribuidor "${DISTRI_NAME}". Verificá el link.`);
-      return;
-    }
+  const ambaOrder = ['Sin ciudad','CABA','Zona Norte','Zona Sur','Zona Oeste'];
 
-    const nombre = (myDistri.Nombre||myDistri.nombre||'').trim();
-    const apellido = (myDistri.Apellido||myDistri.apellido||'').trim();
-    const radio = parseInt(myDistri.Radio||myDistri.radio||'50')||50;
-    const cpRaw = (myDistri['Codigo Postal']||myDistri['Código Postal']||myDistri.CP||'').toString();
-    const cp = cpRaw.replace(/\D/g,'').slice(0,5);
-    const coords = CP_COORDS[cp];
-
-    document.getElementById('distri-badge').textContent = `${nombre} ${apellido}`;
-    document.getElementById('header-sub').textContent = `${coords?'📍 '+cp:'⚠️ Sin coordenadas'} · Radio ${radio} km`;
-    document.title = `Alleata · ${nombre} ${apellido}`;
-
-    if(!coords){
-      showError(`CP ${cp} sin coordenadas. Contactá a Alleata para actualizar tu perfil.`);
-      return;
-    }
-
-    // 2. Load OTs
-    const otsUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_OTS}`;
-    const otsRes = await fetch(otsUrl);
-    const otsCsv = await otsRes.text();
-    const otsRaw = parseCSV(otsCsv);
-
-    // Filter OTs in radio
-    allOts = otsRaw.filter(r=>{
-      if(['Despachado','Extraviada'].includes(r.Status||r.Estado||'')) return false;
-      const otCp = extractCP(r);
-      if(!otCp) return false;
-      const c = CP_COORDS[otCp];
-      if(!c) return false;
-      return haversine(coords[0],coords[1],c[0],c[1]) <= radio;
-    }).map(r=>{
-      const otCp = extractCP(r);
-      const c = CP_COORDS[otCp];
-      const dist = c ? Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10 : null;
-      return {
-        OT: r.WorkOrderNumber||r.OT||'',
-        Comercio: r.Nombre_del_comercio__c||r.Comercio||'',
-        Cuenta: r['Account.Name']||r.Cuenta||'',
-        Ciudad: r.Direcci_n_de_env_o__City__s||r.Ciudad||'',
-        Calle: r.Direcci_n_de_env_o__Street__s||r.Calle||'',
-        Contacto: r.Contacto__c||r.Contacto||'',
-        Horario: r.Horario__c||r.Horario||'',
-        Obs: r.Observaciones__c||r.Obs||'',
-        Estado: r.Status||r.Estado||'',
-        CP: otCp,
-        Dist: dist,
-      };
-    }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
-
-    // 3. Load existing estados if GID_ESTADOS provided
-    if(GID_ESTADOS){
-      try {
-        const estUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_ESTADOS}`;
-        const estRes = await fetch(estUrl);
-        const estCsv = await estRes.text();
-        const estRows = parseCSV(estCsv);
-        estRows.forEach(r=>{
-          const ot = (r.OT||r.WorkOrderNumber||'').toString().trim();
-          const distri = (r.Distribuidor||'').trim().toLowerCase();
-          if(ot && distri === DISTRI_NAME.toLowerCase()){
-            estados[ot] = { estado: r.Estado_Distri||'', obs: r.Observacion||'', fecha: r.Fecha||'' };
-          }
-        });
-      } catch(e){ console.warn('No se pudo cargar estados:', e); }
-    }
-
-    // Load existing estados from Sheets, then render
-    await loadEstadosFromSheets();
-    renderAll();
-  } catch(e){
-    showError('Error cargando datos: ' + e.message);
-  }
-}
-
-// ─── RENDER ──────────────────────────────────────────────────────────────────
-function getEstado(ot){ return estados[String(ot)]?.estado || ''; }
-function getObs(ot){ return estados[String(ot)]?.obs || ''; }
-
-function renderAll(){
-  const q = searchQ.toLowerCase();
-  const visible = allOts.filter(r=>{
-    if(currentFilter !== 'todos'){
-      const est = getEstado(r.OT);
-      const map = {'pendiente':'','contactado':'Contactado','no-encontrado':'No encontrado','retirado':'Retirado'};
-      if(map[currentFilter] !== est) return false;
-    }
-    if(q) return String(r.OT).includes(q) || r.Comercio.toLowerCase().includes(q) || r.Ciudad.toLowerCase().includes(q);
-    return true;
-  });
-
-  // Stats
-  document.getElementById('stat-total').textContent = allOts.length;
-  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
-  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
-  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
-
-  const content = document.getElementById('content');
-  if(!visible.length){
-    content.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div style="font-weight:700;color:#475569">Sin OTs para mostrar</div></div>`;
-    return;
-  }
-
-  content.innerHTML = `<div class="ot-list">${visible.map(r=>renderCard(r)).join('')}</div>`;
-  // Attach events
-  visible.forEach(r=>attachCard(r));
-}
-
-function estadoClass(est){
-  if(est==='Retirado') return 'retirado';
-  if(est==='Contactado') return 'contactado';
-  if(est==='No encontrado') return 'no-encontrado';
-  return '';
-}
-
-function renderCard(r){
-  const est = getEstado(r.OT);
-  const obs = getObs(r.OT);
-  const ec = estadoClass(est);
-  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700">${est}</span>` : '';
-
-  return `
-  <div class="ot-card ${ec}" id="card-${r.OT}">
-    <div class="ot-card-header">
-      <div>
-        <div class="ot-num">OT #${r.OT} ${estBadge}</div>
-        <div class="ot-comercio">${r.Comercio||'Sin nombre'}</div>
-        ${r.Cuenta&&r.Cuenta!==r.Comercio?`<div class="ot-cuenta">${r.Cuenta}</div>`:''}
-      </div>
-      ${r.Dist!=null?`<div class="ot-dist-badge">${r.Dist} km</div>`:''}
-    </div>
-    <div class="ot-info">
-      ${r.Ciudad?`<div class="ot-info-item"><div class="ot-info-lbl">CIUDAD</div><div class="ot-info-val">📍 ${r.Ciudad}</div></div>`:''}
-      ${r.CP?`<div class="ot-info-item"><div class="ot-info-lbl">CP</div><div class="ot-info-val">${r.CP}</div></div>`:''}
-      ${r.Calle?`
-      <div class="ot-info-item" style="grid-column:1/-1">
-        <div class="ot-info-lbl">DIRECCIÓN</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="ot-info-val">${r.Calle}${r.Ciudad?', '+r.Ciudad:''}</span>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.Calle||'')+(r.Ciudad?', '+r.Ciudad:'')+(', Argentina'))}" 
-             target="_blank"
-             style="display:inline-flex;align-items:center;gap:4px;background:#4285F4;color:#fff;text-decoration:none;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">
-            📍 Ver en Maps
-          </a>
-        </div>
-      </div>`:''}
-      ${r.Contacto?`
-      <div class="ot-info-item">
-        <div class="ot-info-lbl">CONTACTO</div>
-        <div class="ot-info-val">
-          <a href="https://wa.me/${r.Contacto.replace(/\D/g,'')}" target="_blank" 
-             style="display:inline-flex;align-items:center;gap:6px;background:#25D366;color:#fff;text-decoration:none;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            ${r.Contacto}
-          </a>
-        </div>
-      </div>`:''}
-      ${r.Horario?`<div class="ot-info-item"><div class="ot-info-lbl">HORARIO</div><div class="ot-info-val">${r.Horario}</div></div>`:''}
-    </div>
-    ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
-    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}</div>`:''}
-    <div class="ot-actions">
-      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" data-ot="${r.OT}" data-action="Contactado">
-        <span class="icon">👁</span>Visitado
-      </button>
-      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" data-ot="${r.OT}" data-action="No encontrado">
-        <span class="icon">❌</span>No encontrado
-      </button>
-      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" data-ot="${r.OT}" data-action="Retirado">
-        <span class="icon">✅</span>Retirado
-      </button>
-    </div>
-    <div class="obs-input-wrap" id="obs-${r.OT}">
-      <textarea class="obs-input" id="obstext-${r.OT}" rows="2" placeholder="Observación opcional..."></textarea>
-      <button class="obs-confirm" data-ot="${r.OT}">Confirmar →</button>
-    </div>
-  </div>`;
-}
-
-function attachCard(r){
-  // Action buttons
-  ['Contactado','No encontrado','Retirado'].forEach(action=>{
-    const btn = document.querySelector(`[data-ot="${r.OT}"][data-action="${action}"]`);
-    if(!btn) return;
-    btn.addEventListener('click', ()=>{
-      const obsWrap = document.getElementById(`obs-${r.OT}`);
-      const current = getEstado(r.OT);
-      if(current === action){
-        // Toggle off
-        delete estados[String(r.OT)];
-        obsWrap.classList.remove('show');
-      } else {
-        if(!estados[String(r.OT)]) estados[String(r.OT)] = {};
-        estados[String(r.OT)].estado = action;
-        obsWrap.classList.add('show');
-        document.getElementById(`obstext-${r.OT}`).value = estados[String(r.OT)].obs||'';
+  const ciudades = useMemo(()=>{
+    const m={};
+    ots.forEach(r=>{
+      // Skip OTs already assigned to a distribuidor
+      if(otsConDistri.has(r.OT)) return;
+      let c = r.Ciudad||'Sin ciudad';
+      if(isAmba){
+        const sub = getAmbaSubzona(c);
+        if(sub) c = sub;
+        else if(r.Zona==='CABA') c='CABA';
+        else c='Sin ciudad';
       }
-      updateCard(r);
+      if(!m[c])m[c]={total:0,Pendiente:0,'En Proceso':0,Extraviada:0,Despachado:0,ots:[]};
+      m[c].total++;
+      if(m[c][r.Estado]!==undefined)m[c][r.Estado]++;
+      m[c].ots.push(r);
     });
-  });
-
-  // Confirm obs
-  const confirmBtn = document.querySelector(`.obs-confirm[data-ot="${r.OT}"]`);
-  if(confirmBtn){
-    confirmBtn.addEventListener('click', ()=>{
-      const obs = document.getElementById(`obstext-${r.OT}`).value.trim();
-      if(!estados[String(r.OT)]) return;
-      estados[String(r.OT)].obs = obs;
-      estados[String(r.OT)].fecha = new Date().toLocaleString('es-AR');
-      document.getElementById(`obs-${r.OT}`).classList.remove('show');
-      saveEstado(r.OT);
-      updateCard(r);
-      toast(`✅ OT #${r.OT} marcada como ${estados[String(r.OT)].estado}`);
-      // Update stats
-      renderStats();
-    });
-  }
-}
-
-function updateCard(r){
-  const card = document.getElementById(`card-${r.OT}`);
-  if(!card) return;
-  const est = getEstado(r.OT);
-  card.className = `ot-card ${estadoClass(est)}`;
-  // Re-render card content
-  card.outerHTML = renderCard(r);
-  const newCard = document.getElementById(`card-${r.OT}`);
-  if(newCard) attachCard(r);
-  renderStats();
-}
-
-function renderStats(){
-  document.getElementById('stat-total').textContent = allOts.length;
-  document.getElementById('stat-pend').textContent  = allOts.filter(r=>!getEstado(r.OT)).length;
-  document.getElementById('stat-visit').textContent = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
-  document.getElementById('stat-ret').textContent   = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
-}
-
-// ─── SAVE TO SHEETS via Apps Script webhook ──────────────────
-const WEBHOOK_URL = params.get('webhook') || '';
-
-async function saveEstado(otNum){
-  // Always save locally first
-  try {
-    const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
-    localStorage.setItem(key, JSON.stringify(estados));
-  } catch(e){}
-
-  if(!WEBHOOK_URL || !estados[String(otNum)]) return;
-
-  const payload = {
-    distri: DISTRI_NAME,
-    ot: String(otNum),
-    estado: estados[String(otNum)].estado,
-    obs: estados[String(otNum)].obs||'',
-    fecha: estados[String(otNum)].fecha||new Date().toLocaleString('es-AR'),
-  };
-
-  try {
-    const res = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload),
-      mode: 'no-cors', // Apps Script needs no-cors
-    });
-    // no-cors means we can't read response, but if no error = success
-  } catch(err){
-    console.warn('Error guardando en Sheets:', err);
-  }
-}
-
-// ─── LOAD estados from Apps Script GET ───────────────────────
-async function loadEstadosFromSheets(){
-  if(!WEBHOOK_URL) return;
-  try {
-    const url = WEBHOOK_URL + '?distri=' + encodeURIComponent(DISTRI_NAME);
-    const res = await fetch(url);
-    const json = await res.json();
-    if(json.ok && json.data){
-      json.data.forEach(r=>{
-        const ot = String(r.OT||'').trim();
-        if(ot){
-          estados[ot] = {
-            estado: r.Estado_Distri||'',
-            obs: r.Observacion||'',
-            fecha: r.Fecha_Distri||'',
-          };
-        }
+    if(isAmba){
+      return Object.entries(m).sort((a,b)=>{
+        const ia=ambaOrder.indexOf(a[0]),ib=ambaOrder.indexOf(b[0]);
+        if(ia!==-1&&ib!==-1)return ia-ib;
+        if(ia!==-1)return -1;
+        if(ib!==-1)return 1;
+        return b[1].total-a[1].total;
       });
     }
-  } catch(e){
-    console.warn('No se pudo cargar estados desde Sheets:', e);
-  }
-}
+    return Object.entries(m).sort((a,b)=>b[1].total-a[1].total);
+  },[ots,isAmba,otsConDistri]);
 
-function showError(msg){
-  document.getElementById('content').innerHTML = `
-    <div class="empty">
-      <div class="empty-icon">⚠️</div>
-      <div style="font-weight:700;color:#475569;margin-bottom:8px">${msg}</div>
-      <div style="font-size:12px;color:#94a3b8">Contactá a Alleata para obtener tu link correcto.</div>
-    </div>`;
-}
-
-// ─── EVENTS ──────────────────────────────────────────────────────────────────
-document.getElementById('search').addEventListener('input', e=>{
-  searchQ = e.target.value;
-  renderAll();
-});
-
-document.querySelectorAll('.filter-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
-    renderAll();
+  const otsCity = ciudadSel
+    ? ciudadSel.startsWith('__distri__')
+      ? (distrisModal.find(d=>'__distri__'+d.id===ciudadSel)?.assignedOts||[])
+      : ciudadSel==='__sin_distri__'
+      ? otsSinDistri
+      : (ciudades.find(([c])=>c===ciudadSel)?.[1]?.ots||[])
+    : [];
+  const otsFiltradas = otsCity.filter(r=>{
+    if(ef!=='Todos'&&r.Estado!==ef)return false;
+    if(q){const s=q.toLowerCase();return r.OT?.includes(s)||r.Comercio?.toLowerCase().includes(s);}
+    return true;
   });
-});
+  const eCounts={};otsCity.forEach(r=>{eCounts[r.Estado]=(eCounts[r.Estado]||0)+1;});
 
-// Load saved estados from localStorage
-try {
-  const key = `alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
-  const saved = localStorage.getItem(key);
-  if(saved) estados = JSON.parse(saved);
-} catch(e){}
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.7)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:16}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:22,width:'100%',maxWidth:960,maxHeight:'92vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 28px 90px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:'linear-gradient(135deg,#0A2540,#063D52)',padding:'18px 24px',color:'#fff',flexShrink:0}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              {ciudadSel&&<button onClick={()=>{setCiudadSel(null);setQ('');setEf('Todos');}} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:8,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700}}>← Volver</button>}
+              <div>
+                <div style={{fontSize:18,fontWeight:900}}>📍 {sector}
+                {ciudadSel&&<span style={{color:'#5eead4'}}> › {
+                  ciudadSel.startsWith('__distri__')
+                    ? (()=>{const d=distrisModal.find(d=>'__distri__'+d.id===ciudadSel);return d?d.nombre+' '+d.apellido:'Distribuidor';})()
+                    : ciudadSel==='__sin_distri__' ? 'Sin distribuidor' : ciudadSel
+                }</span>}
+              </div>
+                <div style={{fontSize:11,color:'#99f6e4',marginTop:2}}>{ciudadSel?`${otsCity.length} OTs · ${otsFiltradas.length} mostradas`:`${ots.length} OTs · ${ciudades.length} ciudades`}</div>
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:10,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:13}}>✕</button>
+          </div>
+          {ciudadSel&&(
+            <div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap'}}>
+              {Object.entries(eCounts).map(([e,c])=>(<span key={e} style={{background:'rgba(255,255,255,.12)',color:'#fff',borderRadius:99,padding:'2px 10px',fontSize:11,fontWeight:700}}><span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:ESTADO_C[e]||'#fff',marginRight:5,verticalAlign:'middle'}}/>{e}: {c}</span>))}
+            </div>
+          )}
+        </div>
 
-// ─── INIT ────────────────────────────────────────────────────────────────────
-if(!DISTRI_PARAM){
-  showError('Link sin distribuidor. Usá el link que te envió Alleata.');
-} else {
-  loadData();
+        {!ciudadSel&&(
+          <div style={{overflowY:'auto',flex:1,padding:'16px'}}>
+            {distrisModal.length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#00695C',letterSpacing:.5,marginBottom:8}}>🚚 DISTRIBUIDORES EN ESTA PROVINCIA</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:8,marginBottom:12}}>
+                  {distrisModal.map(d=>(
+                    <div key={d.id} style={{background:'#E0F2F1',borderRadius:12,padding:'12px 14px',border:'2px solid #80CBC4'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                        <div style={{fontWeight:800,color:'#004D40',fontSize:13}}>{d.nombre} {d.apellido}</div>
+                        <span style={{background:'#00897B',color:'#fff',borderRadius:99,padding:'2px 10px',fontSize:12,fontWeight:700}}>{d.assignedOts.length} OTs</span>
+                      </div>
+                      <div style={{fontSize:11,color:'#00695C'}}>Radio: {d.radio} km{!d.lat?' · ⚠️ Sin coordenadas':''}</div>
+                      {d.assignedOts.length>0&&(
+                        <button onClick={()=>setCiudadSel('__distri__'+d.id)} style={{marginTop:8,width:'100%',background:'#00897B',color:'#fff',border:'none',borderRadius:8,padding:'6px',fontSize:11,fontWeight:700,cursor:'pointer'}}>Ver sus OTs →</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {otsSinDistri.length>0&&(
+                  <div style={{background:'#fff3cd',borderRadius:12,padding:'10px 14px',border:'2px solid #ffc107',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div>
+                      <span style={{fontWeight:800,color:'#856404',fontSize:13}}>⚠️ Sin distribuidor asignado</span>
+                      <span style={{marginLeft:8,background:'#ffc107',color:'#fff',borderRadius:99,padding:'2px 10px',fontSize:12,fontWeight:700}}>{otsSinDistri.length} OTs</span>
+                    </div>
+                    <button onClick={()=>setCiudadSel('__sin_distri__')} style={{background:'#856404',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:11,fontWeight:700,cursor:'pointer'}}>Ver sin distri →</button>
+                  </div>
+                )}
+                <div style={{borderBottom:'2px solid #e2e8f0',margin:'12px 0'}}/>
+              </div>
+            )}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:10}}>
+              {ciudades.map(([ciudad,stats])=>(
+                <div key={ciudad} onClick={()=>setCiudadSel(ciudad)}
+                  style={{background:'#fff',borderRadius:14,padding:'14px 16px',border:'2px solid #e2e8f0',cursor:'pointer',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#00BFA5';e.currentTarget.style.boxShadow='0 4px 16px rgba(0,191,165,.15)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.boxShadow='0 1px 4px rgba(0,0,0,.06)';}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                    <div style={{fontSize:13,fontWeight:800,color:'#0A2540',lineHeight:1.3,flex:1,marginRight:8}}>{ciudad}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:'#00897B',lineHeight:1,flexShrink:0}}>{stats.total}</div>
+                  </div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+                    {[['P',stats.Pendiente,'#f59e0b'],['EP',stats['En Proceso'],'#3b82f6'],['EX',stats.Extraviada,'#ef4444'],['D',stats.Despachado,'#10b981']].filter(([,v])=>v>0).map(([lbl,val,col])=>(
+                      <span key={lbl} style={{background:col+'18',color:col,border:`1px solid ${col}40`,borderRadius:99,padding:'1px 7px',fontSize:10,fontWeight:700}}>{lbl}: {val}</span>
+                    ))}
+                  </div>
+                  <div style={{fontSize:10,color:'#00897B',fontWeight:700}}>Ver OTs →</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {ciudadSel&&(
+          <>
+            <div style={{padding:'10px 16px',background:'#f8fafc',borderBottom:'1px solid #e2e8f0',display:'flex',gap:8,flexWrap:'wrap',flexShrink:0}}>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar OT o comercio..." style={{padding:'6px 12px',borderRadius:8,border:'1px solid #e2e8f0',fontSize:12,flex:1,minWidth:140,fontFamily:'inherit',outline:'none'}}/>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                {['Todos',...Object.keys(eCounts)].map(e=>(<button key={e} onClick={()=>setEf(e)} style={{padding:'5px 10px',borderRadius:7,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,background:ef===e?(ESTADO_C[e]||'#00897B'):'#e8edf5',color:ef===e?'#fff':'#64748b'}}>{e}</button>))}
+              </div>
+            </div>
+            <div style={{overflowY:'auto',flex:1}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead style={{position:'sticky',top:0,background:'#f8fafc',zIndex:1}}>
+                  <tr>{(ciudadSel&&ciudadSel.startsWith('__distri__')?['Dist.','OT','Comercio','Logística','Estado','CP','Dirección','Contacto']:['OT','Comercio','Logística','Estado','Zona','CP','Dirección','Contacto','Gestión']).map(h=>(<th key={h} style={{padding:'9px 12px',textAlign:'left',fontWeight:700,color:'#475569',borderBottom:'2px solid #e2e8f0',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>))}</tr>
+                </thead>
+                <tbody>
+                  {otsFiltradas.map((r,i)=>{const ec=ESTADO_C[r.Estado];const zc=ZONA_C[r.Zona];return(
+                    <tr key={i} onClick={()=>onOtClick&&onOtClick(r)} style={{borderBottom:'1px solid #f1f5f9',background:i%2===0?'#fff':'#fafafa',cursor:'pointer'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='#f0faf8'}
+                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'#fff':'#fafafa'}>
+                      {ciudadSel&&ciudadSel.startsWith('__distri__')&&<td style={{padding:'8px 12px',fontWeight:700,color:'#00697B',whiteSpace:'nowrap'}}>{r.distADistri} km</td>}
+                      <td style={{padding:'8px 12px',fontWeight:800,color:'#00897B',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                      <td style={{padding:'8px 12px',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
+                      <td style={{padding:'8px 12px',color:'#64748b',fontSize:11,whiteSpace:'nowrap'}}>{r.Logistica}</td>
+                      <td style={{padding:'8px 12px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700}}>{r.Estado}</span>:r.Estado}</td>
+                      <td style={{padding:'8px 12px'}}>{zc?<span style={{background:zc.bg,color:zc.text,border:`1px solid ${zc.bd}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700}}>{r.Zona}</span>:r.Zona}</td>
+                      <td style={{padding:'8px 12px',fontFamily:'monospace',color:'#64748b',fontSize:11}}>{r.CP}</td>
+                      <td style={{padding:'8px 12px',color:'#64748b',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.DireccionFormula||r.Calle}</td>
+                      <td style={{padding:'8px 12px',color:'#475569',whiteSpace:'nowrap',fontSize:11}}>{r.Contacto}</td>
+                      <td style={{padding:'8px 12px',color:'#94a3b8',fontSize:11,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.GestionEstado}</td>
+                    </tr>
+                  );})}
+                  {otsFiltradas.length===0&&<tr><td colSpan={9} style={{textAlign:'center',padding:40,color:'#94a3b8'}}>Sin resultados</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
-</script>
+
+
+function ConfigTab({sheetOts, sheetDistri, onSave}){
+  const [webhookUrl, setWebhookUrl] = React.useState(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}});
+  const [urlOts, setUrlOts] = React.useState(sheetOts||'');
+  const [urlDistri, setUrlDistri] = React.useState(sheetDistri||'');
+  const [saved, setSaved] = React.useState(false);
+
+  function toExport(url){
+    const m=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+).*[#&?]gid=(\d+)/);
+    if(m)return 'https://docs.google.com/spreadsheets/d/'+m[1]+'/export?format=csv&gid='+m[2];
+    const m2=url.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if(m2)return 'https://docs.google.com/spreadsheets/d/'+m2[1]+'/export?format=csv';
+    return url;
+  }
+  function handleSave(){
+    const o=toExport(urlOts.trim());const d=toExport(urlDistri.trim());
+    try{localStorage.setItem('alleata_ots',o);localStorage.setItem('alleata_distri',d);}catch(e){}
+    onSave(o,d);setSaved(true);setTimeout(()=>setSaved(false),2500);
+  }
+  const inp={width:'100%',padding:'11px 14px',borderRadius:10,border:'2px solid #e2e8f0',fontSize:12,fontFamily:'inherit',outline:'none',marginTop:6,color:'#0A2540'};
+  return(
+    <div style={{maxWidth:660,margin:'36px auto',padding:'0 20px'}}>
+      <div style={{background:'#fff',borderRadius:20,padding:'32px',boxShadow:'0 2px 20px rgba(0,0,0,.08)'}}>
+        <div style={{fontSize:20,fontWeight:900,color:'#0A2540',marginBottom:4}}>⚙️ Configuración</div>
+        <div style={{fontSize:13,color:'#94a3b8',marginBottom:28}}>Pegá los links de tus Google Sheets. Se guardan en el navegador.</div>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0A2540',letterSpacing:.5}}>PLANILLA DE ÓRDENES DE TRABAJO</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Link de la hoja con las desinstalaciones</div>
+          <input value={urlOts} onChange={e=>setUrlOts(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
+        </div>
+        <div style={{marginBottom:28}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0A2540',letterSpacing:.5}}>PLANILLA DE DISTRIBUIDORES</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Link de la hoja con los distribuidores</div>
+          <input value={urlDistri} onChange={e=>setUrlDistri(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
+        </div>
+        <button onClick={handleSave} style={{width:'100%',background:saved?'#10b981':'linear-gradient(135deg,#00897B,#00BFA5)',color:'#fff',border:'none',borderRadius:12,padding:'13px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+          {saved?'✅ Guardado — recargando...':'💾 Guardar y actualizar datos'}
+        </button>
+        <div style={{marginTop:24,background:'#F0F7F6',borderRadius:12,padding:'16px'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#00695C',marginBottom:10}}>📋 CÓMO USAR</div>
+          {[['1','Abrí tu Google Sheets'],['2','Archivo → Compartir → Cualquier persona con el vínculo puede ver'],['3','Copiá el link y pegalo en el campo'],['4','Hacé clic en Guardar y actualizar']].map(([n,t])=>(
+            <div key={n} style={{display:'flex',gap:10,marginBottom:8,alignItems:'flex-start'}}>
+              <span style={{background:'#00897B',color:'#fff',borderRadius:'50%',width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{n}</span>
+              <span style={{fontSize:12,color:'#475569',lineHeight:1.5,paddingTop:2}}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OtModal({ot, onClose}){
+  const [cpInferido, setCpInferido] = React.useState(null);
+  const [cpLoading, setCpLoading] = React.useState(false);
+
+  React.useEffect(()=>{
+    if(!ot){setCpInferido(null);return;}
+    const cpActual=(ot.CP||'').replace(/\D/g,'');
+    if(cpActual.length>=4){setCpInferido(null);return;}
+    // CP missing - try georef API
+    const ciudad=ot.Ciudad||'';
+    const prov=ot.ProvNorm||ot.Provincia||'';
+    const calle=ot.Calle||'';
+    if(!ciudad&&!calle){return;}
+    setCpLoading(true);
+    // Build georef query: street + city + province
+    const params=new URLSearchParams();
+    if(calle) params.set('direccion', calle);
+    if(ciudad) params.set('localidad_censal',ciudad);
+    if(prov) params.set('provincia',prov);
+    params.set('max','1');
+    params.set('campos','basico,codigo_postal');
+    fetch('https://apis.datos.gob.ar/georef/api/direcciones?'+params.toString())
+      .then(r=>r.json())
+      .then(d=>{
+        const cp=d?.direcciones?.[0]?.codigo_postal;
+        if(cp) setCpInferido(cp);
+      })
+      .catch(()=>{})
+      .finally(()=>setCpLoading(false));
+  },[ot]);
+
+  if(!ot) return null;
+  const ec = ESTADO_C[ot.Estado];
+  const zc = ZONA_C[ot.Zona];
+  const cpFinal = (ot.CP||'').replace(/\D/g,'').length>=4 ? ot.CP : (cpInferido||ot.CP||'');
+  const fields = [
+    ['Provincia', ot.ProvNorm],
+    ['Ciudad', ot.Ciudad],
+    ['CP', cpFinal+(cpInferido&&!(ot.CP||'').replace(/\D/g,'').length?' 🔍 inferido':'')],
+    ['Dirección', ot.Calle],
+    ['Contacto', ot.Contacto],
+    ['Horario', ot.Horario],
+    ['Gestión', ot.GestionEstado],
+  ].filter(([,v])=>v);
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.75)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:400,padding:16}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:22,width:'100%',maxWidth:560,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 28px 90px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:'linear-gradient(135deg,#0A2540,#063D52)',padding:'20px 24px',color:'#fff',flexShrink:0}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div>
+              <div style={{fontSize:22,fontWeight:900,color:'#5eead4'}}>OT #{ot.OT}</div>
+              <div style={{fontSize:15,fontWeight:700,color:'#fff',marginTop:4}}>{ot.Comercio||'Sin nombre'}</div>
+              {ot.Cuenta&&ot.Cuenta!==ot.Comercio&&<div style={{fontSize:12,color:'#99f6e4',marginTop:2}}>{ot.Cuenta}</div>}
+              {ot.Ciudad&&<div style={{fontSize:12,color:'#5eead4',marginTop:2}}>📍 {ot.Ciudad}{ot.ProvNorm?', '+ot.ProvNorm:''}</div>}
+            </div>
+            <button onClick={onClose} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:10,padding:'7px 14px',cursor:'pointer',fontWeight:700,fontSize:13,flexShrink:0}}>✕</button>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+            {ec&&<span style={{background:ec+'33',color:'#fff',border:`1px solid ${ec}`,borderRadius:99,padding:'3px 12px',fontSize:12,fontWeight:700}}>{ot.Estado}</span>}
+            {zc&&<span style={{background:'rgba(255,255,255,.15)',color:'#fff',borderRadius:99,padding:'3px 12px',fontSize:12,fontWeight:700}}>{ot.Zona}</span>}
+            {ot.Logistica&&<span style={{background:'rgba(255,255,255,.1)',color:'#99f6e4',borderRadius:99,padding:'3px 12px',fontSize:11,fontWeight:600}}>{ot.Logistica}</span>}
+          </div>
+        </div>
+        <div style={{overflowY:'auto',flex:1,padding:'20px 24px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {fields.filter(([k])=>!['OT','Comercio','Cuenta','Estado','Zona','Logística'].includes(k)).map(([k,v])=>(
+              <div key={k} style={{background:'#f8fafc',borderRadius:12,padding:'12px 14px'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',letterSpacing:.5,marginBottom:4}}>{k.toUpperCase()}</div>
+                <div style={{fontSize:13,fontWeight:600,color:'#0A2540',lineHeight:1.4}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {ot.Obs&&(
+            <div style={{marginTop:12,background:'#F0F7F6',borderRadius:12,padding:'12px 14px',border:'1px solid #80CBC4'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#00695C',letterSpacing:.5,marginBottom:4}}>OBSERVACIONES</div>
+              <div style={{fontSize:13,color:'#0A2540',lineHeight:1.5}}>{ot.Obs}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DistribuidoresTab({data,sheetDistri}){
+  const [distris,setDistris]=useState([]);
+  const [radios,setRadios]=useState(()=>{try{const saved={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('alleata_radios_')){saved[k.replace('alleata_radios_','')]=parseInt(localStorage.getItem(k));}}return saved;}catch(e){return {};}});
+  const [loading,setLoading]=useState(true);
+  const [otsModal,setOtsModal]=useState(null);
+  const [editRadio,setEditRadio]=useState(null);
+  const [tmpRadio,setTmpRadio]=useState('');
+
+  useEffect(()=>{
+    fetch(sheetDistri||SHEET_DISTRI).then(r=>r.text()).then(csv=>{
+      const rows=parseCSV(csv);
+      const mapped=rows.filter(r=>(r.Nombre||r.nombre||'').trim()).map((r,i)=>{
+        const nombre=(r.Nombre||r.nombre||'').trim();
+        const apellido=(r.Apellido||r.apellido||'').trim();
+        const dir=(r.Direccion||r.direccion||'').trim();
+        const cp=(r['Codigo Postal']||r['Código Postal']||r.CodigoPostal||r.CP||'').toString().replace(/\D/g,'').slice(0,5);
+        const loc=(r.Localidad||r.localidad||'').trim();
+        const prov=(r.Provincia||r.provincia||'').trim();
+        const tel=(r.Telefono||r.telefono||r.Whatsapp||r.whatsapp||'').trim();
+        const mail=(r.Mail||r.mail||r.Email||r.email||'').trim();
+        const radio=parseInt(r.Radio||r.radio||'50')||50;
+        const cpNum=parseInt(cp)||0;
+        const coords=cpNum?CP_COORDS[cpNum]:null;
+        return{id:i,nombre,apellido,dir,cp,loc,prov,tel,mail,radio,lat:coords?coords[0]:null,lon:coords?coords[1]:null};
+      });
+      setDistris(mapped);
+      const r={};mapped.forEach(d=>{r[d.id]=d.radio;});setRadios(r);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[sheetDistri]);
+  function getOts(d){
+    const radio=radios[d.id]??d.radio;
+    if(!d.lat)return[];
+    return data.filter(r=>!['Despachado','Extraviada'].includes(r.Estado)).map(r=>{
+      const m=(r.CP||'').match(/\d{4,5}/);if(!m)return null;
+      const cpNum=parseInt(m[0]);
+      const c=CP_COORDS[cpNum];if(!c)return null;
+      const dist=haversine(d.lat,d.lon,c[0],c[1]);
+      if(dist>radio)return null;
+      return{...r,DistDistri:Math.round(dist*10)/10};
+    }).filter(Boolean).sort((a,b)=>a.DistDistri-b.DistDistri);
+  }
+
+  if(loading)return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:80}}><div style={{textAlign:'center',color:'#94a3b8'}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><div style={{fontWeight:700,fontSize:15}}>Cargando distribuidores desde Google Sheets...</div></div></div>);
+
+  return(
+    <div style={{maxWidth:1380,margin:'0 auto',padding:'24px 20px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:900,color:'#0A2540'}}>🚚 Distribuidores</div>
+          <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>{distris.length} distribuidores · Google Sheets · solo Radio editable</div>
+          <div style={{fontSize:11,color:'#00695C',marginTop:4}}>💡 Cada distribuidor tiene un link único para reportar sus OTs</div>
+        </div>
+        <a href="https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/edit#gid=107031751" target="_blank" rel="noreferrer" style={{background:'#E0F2F1',color:'#00695C',border:'1px solid #80CBC4',borderRadius:10,padding:'9px 16px',fontSize:12,fontWeight:700,textDecoration:'none'}}>✏️ Editar en Sheets</a>
+      </div>
+
+      {distris.length===0?(
+        <div style={{textAlign:'center',padding:60,color:'#94a3b8',background:'#fff',borderRadius:20,border:'2px dashed #e2e8f0'}}>
+          <div style={{fontSize:40,marginBottom:12}}>🚚</div>
+          <div style={{fontWeight:700,fontSize:16,color:'#475569'}}>No hay distribuidores cargados</div>
+          <div style={{fontSize:13,marginTop:6}}>Agregá distribuidores en la hoja "Distribuidores" del Google Sheets</div>
+          <a href="https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/edit" target="_blank" rel="noreferrer" style={{display:'inline-block',marginTop:16,background:'#00897B',color:'#fff',borderRadius:10,padding:'10px 22px',fontSize:13,fontWeight:700,textDecoration:'none'}}>Abrir Google Sheets →</a>
+        </div>
+      ):(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(330px,1fr))',gap:18}}>
+          {distris.map(d=>{
+            const ots=getOts(d);
+            const radio=radios[d.id]??d.radio;
+            const pe={};ots.forEach(r=>{pe[r.Estado]=(pe[r.Estado]||0)+1;});
+            const hasCoords=!!d.lat;
+            const isEditing=editRadio===d.id;
+            return(
+              <div key={d.id} style={{background:'#fff',borderRadius:18,padding:'20px',border:'2px solid #e2e8f0',boxShadow:'0 2px 12px rgba(0,0,0,.06)'}}>
+                <div style={{display:'flex',gap:14,marginBottom:16}}>
+                  <div style={{width:48,height:48,borderRadius:14,background:'linear-gradient(135deg,#00897B,#00BFA5)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:22,color:'#fff',fontWeight:900}}>
+                    {(d.nombre[0]||'?').toUpperCase()}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:16,fontWeight:900,color:'#0A2540'}}>{d.nombre} {d.apellido}</div>
+                    <div style={{fontSize:11,color:'#64748b',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>📍 {[d.dir,d.loc,d.prov].filter(Boolean).join(', ')}</div>
+                    {d.cp&&<div style={{fontSize:11,color:'#94a3b8',marginTop:1}}>CP: {d.cp}</div>}
+                  </div>
+                </div>
+
+                {(d.tel||d.mail)&&(
+                  <div style={{background:'#F0FAF8',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',gap:16,flexWrap:'wrap'}}>
+                    {d.tel&&<a href={`https://wa.me/${d.tel.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:5,color:'#00897B',textDecoration:'none',fontSize:12,fontWeight:700}}><span style={{fontSize:16}}>📱</span>{d.tel}</a>}
+                    {d.mail&&<a href={`mailto:${d.mail}`} style={{display:'flex',alignItems:'center',gap:5,color:'#0066CC',textDecoration:'none',fontSize:12,fontWeight:700}}><span style={{fontSize:14}}>✉️</span>{d.mail}</a>}
+                  </div>
+                )}
+
+                <div style={{background:'#E0F2F1',borderRadius:10,padding:'10px 14px',marginBottom:14,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'#00695C',letterSpacing:.5}}>RADIO DE COBERTURA</div>
+                  {isEditing?(
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <input type="number" value={tmpRadio} onChange={e=>setTmpRadio(e.target.value)} min={5} max={500}
+                        style={{width:65,padding:'5px 8px',borderRadius:7,border:'2px solid #00897B',fontSize:14,fontWeight:700,fontFamily:'inherit',outline:'none',textAlign:'center'}}/>
+                      <span style={{fontSize:11,color:'#00695C',fontWeight:700}}>km</span>
+                      <button onClick={()=>{const v=parseInt(tmpRadio)||radio;const nr={...radios,[d.id]:v};setRadios(nr);try{localStorage.setItem('alleata_radios_'+d.id,v);}catch(e){}setEditRadio(null);}} style={{background:'#00897B',color:'#fff',border:'none',borderRadius:7,padding:'5px 10px',fontSize:12,fontWeight:700,cursor:'pointer'}}>✓</button>
+                      <button onClick={()=>setEditRadio(null)} style={{background:'#e2e8f0',color:'#64748b',border:'none',borderRadius:7,padding:'5px 8px',fontSize:12,cursor:'pointer'}}>✕</button>
+                    </div>
+                  ):(
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:20,fontWeight:900,color:'#00897B'}}>{radio} km</span>
+                      <button onClick={()=>{setEditRadio(d.id);setTmpRadio(String(radio));}} style={{background:'#E0F2F1',color:'#00695C',border:'1px solid #80CBC4',borderRadius:7,padding:'4px 10px',fontSize:11,fontWeight:700,cursor:'pointer'}}>✏️ Editar</button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:14}}>
+                  <div style={{fontSize:34,fontWeight:900,color:hasCoords?'#00897B':'#cbd5e1',lineHeight:1}}>{hasCoords?ots.length:'—'}</div>
+                  <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.4}}>OTs<br/>a retirar</div>
+                  <div style={{flex:1,display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    {Object.entries(pe).map(([e,n])=>(<span key={e} style={{background:(ESTADO_C[e]||'#94a3b8')+'22',color:ESTADO_C[e]||'#94a3b8',border:`1px solid ${ESTADO_C[e]||'#94a3b8'}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{e.split(' ')[0]}: {n}</span>))}
+                  </div>
+                </div>
+
+                {!hasCoords&&<div style={{fontSize:11,color:'#ef4444',background:'#fee2e2',borderRadius:8,padding:'6px 10px',marginBottom:10,fontWeight:600}}>⚠️ CP {d.cp||'vacío'} sin coordenadas</div>}
+
+                <button onClick={()=>hasCoords&&ots.length>0&&setOtsModal({d,ots})} disabled={!hasCoords||ots.length===0}
+                  style={{width:'100%',background:hasCoords&&ots.length>0?'linear-gradient(135deg,#00897B,#00BFA5)':'#f1f5f9',color:hasCoords&&ots.length>0?'#fff':'#94a3b8',border:'none',borderRadius:11,padding:'11px',fontSize:13,fontWeight:700,cursor:hasCoords&&ots.length>0?'pointer':'default',marginTop:'auto'}}>
+                  {!hasCoords?'Sin coordenadas':ots.length===0?'Sin OTs en el radio':'Ver listado de OTs →'}
+                </button>
+                <button onClick={()=>{
+                  const base = window.location.href.replace(/\/[^/]*$|\/$/,'');
+                  const sheetIdMatch = (sheetDistri||'').match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+                  const sheetId = sheetIdMatch?sheetIdMatch[1]:'1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY';
+                  const webhookUrl = (()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})();
+                  const link = `${base}/distri.html?distri=${(d.nombre+'_'+d.apellido).replace(/\s+/g,'_')}&sheet=${sheetId}&gid_ots=1843553678&gid_distri=107031751`+(webhookUrl?`&webhook=${encodeURIComponent(webhookUrl)}`:'');
+                  navigator.clipboard.writeText(link).then(()=>alert('✅ Link copiado para '+d.nombre+'\n\n'+link)).catch(()=>alert('Link: '+link));
+                }} style={{width:'100%',background:'#E0F2F1',color:'#00695C',border:'1px solid #80CBC4',borderRadius:11,padding:'9px',fontSize:12,fontWeight:700,cursor:'pointer',marginTop:6}}>
+                  🔗 Copiar link del distribuidor
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {otsModal&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.7)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:16}} onClick={()=>setOtsModal(null)}>
+          <div style={{background:'#fff',borderRadius:22,width:'100%',maxWidth:980,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 28px 90px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:'linear-gradient(135deg,#0A2540,#063D52)',padding:'20px 28px',color:'#fff',flexShrink:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div>
+                  <div style={{fontSize:19,fontWeight:900}}>🚚 {otsModal.d.nombre} {otsModal.d.apellido}</div>
+                  <div style={{fontSize:12,color:'#99f6e4',marginTop:2}}>📍 {[otsModal.d.dir,otsModal.d.loc].filter(Boolean).join(', ')} · Radio: {radios[otsModal.d.id]??otsModal.d.radio} km · {otsModal.ots.length} OTs a retirar</div>
+                  {otsModal.d.tel&&<div style={{fontSize:12,color:'#5eead4',marginTop:2}}>📱 {otsModal.d.tel}</div>}
+                </div>
+                <button onClick={()=>setOtsModal(null)} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:10,padding:'8px 16px',cursor:'pointer',fontWeight:700}}>✕ Cerrar</button>
+              </div>
+            </div>
+            <div style={{overflowY:'auto',flex:1}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead style={{position:'sticky',top:0,background:'#f8fafc',zIndex:1}}><tr>{['Dist.','OT','Comercio','Estado','CP','Ciudad','Dirección','Contacto','Horario'].map(h=>(<th key={h} style={{padding:'10px 12px',textAlign:'left',fontWeight:700,color:'#475569',borderBottom:'2px solid #e2e8f0',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>))}</tr></thead>
+                <tbody>
+                  {otsModal.ots.map((r,i)=>{const ec=ESTADO_C[r.Estado];return(
+                    <tr key={i} style={{borderBottom:'1px solid #f1f5f9',background:i%2===0?'#fff':'#fafafa'}}>
+                      <td style={{padding:'8px 12px',fontWeight:800,color:'#00897B',whiteSpace:'nowrap'}}>{r.DistDistri} km</td>
+                      <td style={{padding:'8px 12px',fontWeight:800,color:'#00897B',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                      <td style={{padding:'8px 12px',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
+                      <td style={{padding:'8px 12px'}}><span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700}}>{r.Estado}</span></td>
+                      <td style={{padding:'8px 12px',fontFamily:'monospace',color:'#64748b',fontSize:11}}>{r.CP}</td>
+                      <td style={{padding:'8px 12px',color:'#475569'}}>{r.Ciudad}</td>
+                      <td style={{padding:'8px 12px',color:'#64748b',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.DireccionFormula||r.Calle}</td>
+                      <td style={{padding:'8px 12px',color:'#475569',whiteSpace:'nowrap'}}>{r.Contacto}</td>
+                      <td style={{padding:'8px 12px',color:'#94a3b8',fontSize:11,whiteSpace:'nowrap'}}>{r.Horario}</td>
+                    </tr>
+                  );})}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function App() {
+  const [sheetOts,setSheetOts]=useState(()=>{try{return localStorage.getItem('alleata_ots')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}});
+  const [sheetDistri,setSheetDistri]=useState(()=>{try{return localStorage.getItem('alleata_distri')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}});
+  function handleConfigSave(o,d){setSheetOts(o);setSheetDistri(d);setSyncStatus('loading');setData([]);setActiveTab('dashboard');}
+  const [data,setData]=useState([]);
+  const [syncStatus, setSyncStatus] = useState('loading');
+  const [selectedSector, setSelectedSector] = useState(null);
+  const [estadoF, setEstadoF] = useState('Todos');
+  const [zonaF, setZonaF] = useState('Todas');
+  const [logF, setLogF] = useState('Todas');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [sinCpFilter, setSinCpFilter] = useState(null); // 'sinProv' | 'conProv'
+  const [otModal, setOtModal] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const PAGE = 50;
+
+  useEffect(() => {
+    fetch(sheetOts)
+      .then(r=>r.text())
+      .then(csv=>{
+        const lines=csv.split('\n').filter(l=>l.trim());
+        if(lines.length<2){setSyncStatus('fallback');return;}
+        const heads=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+        const rows=lines.slice(1).map(line=>{
+          const vals=[]; let cur='',inQ=false;
+          for(const ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}else{cur+=ch;}}
+          vals.push(cur.trim());
+          const obj={};
+          heads.forEach((h,i)=>{obj[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});
+          return obj;
+        });
+        if(rows.length>5){
+          const mapped=rows.map(r=>{
+            const pn=normProv(r.Provincia_limpia||r.Provincia||r.b||'');
+            const zona=r.Categoria_Zona__c||r.Zona||'Sin Zona';
+            return {
+              OT:r.WorkOrderNumber||r.OT||'',Comercio:r.Nombre_del_comercio__c||r.Comercio||'',
+              Cuenta:r['Account.Name']||r.Cuenta||'',Logistica:r.Logistica__c||r.Logistica||'',
+              Estado:r.Status||r.Estado||'',Zona:zona,
+              Provincia:r.Provincia_limpia||r.Provincia||r.b||'',CP:(()=>{
+              // 1. Try CP_extraido / CP field (strip letter prefix B7600->7600)
+              const raw=r.CP_extraido||r.CP||'';
+              const stripped=raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
+              if(stripped.length>=4) return stripped;
+              // 2. Extract from column 'b' = " Buenos Aires B7600APV" -> "7600"
+              const colB=(r.b||'').toString().trim();
+              const mB=colB.match(/[A-Z](\d{4})/);
+              if(mB) return mB[1];
+              const mB2=colB.match(/\b(\d{4,5})\b/);
+              if(mB2) return mB2[1];
+              // 3. Try CP embedded in address
+              const addr=(r.Direcci_n_de_env_o__Street__s||r.Calle||'');
+              const cpInAddr=addr.match(/[A-Z]?(\d{4,5})/);
+              if(cpInAddr&&cpInAddr[1].length>=4) return cpInAddr[1];
+              // 4. Infer from ciudad/localidad
+              const ciudad=(r.Direcci_n_de_env_o__City__s||r.Ciudad||'').toLowerCase().trim();
+              if(ciudad&&LOCALIDAD_CP[ciudad]) return LOCALIDAD_CP[ciudad];
+              return raw;
+            })(),
+              Ciudad:r.Direcci_n_de_env_o__City__s||r.Ciudad||'',
+              Calle:r.Direcci_n_de_env_o__Street__s||r.Calle||'',
+              Contacto:r.Contacto__c||r.Contacto||'',Horario:r.Horario__c||r.Horario||'',
+              GestionEstado:r.Status_Gestion_Retiros__c||r.GestionEstado||'',
+              Obs:r.Observaciones__c||r.Obs||'',
+              ProvNorm:pn, Sector:getSector(pn,zona),
+            };
+          });
+          setData(mapped); setSyncStatus('live');
+        } else setSyncStatus('fallback');
+      }).catch(()=>setSyncStatus('fallback'));
+  },[sheetOts]);
+
+  const logisticas = useMemo(()=>['Todas',...Array.from(new Set(data.map(r=>r.Logistica).filter(Boolean))).sort()],[data]);
+
+  const filtered = useMemo(()=>data.filter(r=>{
+    if(estadoF!=='Todos'&&r.Estado!==estadoF) return false;
+    if(zonaF!=='Todas'&&r.Zona!==zonaF) return false;
+    if(logF!=='Todas'&&r.Logistica!==logF) return false;
+    if(search){const q=search.toLowerCase();return r.OT?.includes(q)||r.Comercio?.toLowerCase().includes(q)||r.Provincia?.toLowerCase().includes(q)||r.Ciudad?.toLowerCase().includes(q)||r.CP?.toLowerCase().includes(q);}
+    return true;
+  }),[data,estadoF,zonaF,logF,search]);
+
+  // Sectores ordenados de mayor a menor
+  const sectorStats = useMemo(()=>{
+    const c={};
+    filtered.forEach(r=>{
+      const s=r.Sector||'Sin dato';
+      if(s==='Sin dato') return;
+      if(!c[s]) c[s]={total:0,Pendiente:0,'En Proceso':0,Extraviada:0,Despachado:0};
+      c[s].total++;
+      if(c[s][r.Estado]!==undefined) c[s][r.Estado]++;
+    });
+    return Object.entries(c).sort((a,b)=>b[1].total-a[1].total);
+  },[filtered]);
+
+  const maxCount = sectorStats[0]?.[1]?.total || 1;
+  const sectorOTs = useMemo(()=>selectedSector?filtered.filter(r=>r.Sector===selectedSector):[],[filtered,selectedSector]);
+  const paged = filtered.slice(page*PAGE,(page+1)*PAGE);
+  const totalPages = Math.ceil(filtered.length/PAGE);
+
+  const Btn = ({items,cur,set,colors})=>items.map(v=>(
+    <button key={v} onClick={()=>{set(v);setPage(0);}} style={{
+      padding:'5px 12px',borderRadius:8,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,whiteSpace:'nowrap',
+      background:cur===v?(colors?colors[v]||'#00897B':'#00897B'):'#f0f2f8',
+      color:cur===v?'#fff':'#64748b',transition:'all .15s'
+    }}>{v}</button>
+  ));
+
+  const kpis=[
+    {label:'TOTAL',value:filtered.length,color:'#00BFA5'},
+    {label:'PENDIENTES',value:filtered.filter(r=>r.Estado==='Pendiente').length,color:'#f59e0b'},
+    {label:'EN PROCESO',value:filtered.filter(r=>r.Estado==='En Proceso').length,color:'#3b82f6'},
+    {label:'EXTRAVIADAS',value:filtered.filter(r=>r.Estado==='Extraviada').length,color:'#ef4444'},
+    {label:'DESPACHADAS',value:filtered.filter(r=>r.Estado==='Despachado').length,color:'#10b981'},
+  ];
+
+  // Special styling for BsAs rows
+  const isBA = s => s?.startsWith('Buenos Aires');
+
+  return (
+    <div style={{minHeight:'100vh',background:'#F0F7F6',fontFamily:"'DM Sans',system-ui,sans-serif"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;900&display=swap" rel="stylesheet"/>
+
+      {/* HEADER */}
+      <div style={{background:'linear-gradient(135deg,#0A2540 0%,#063D52 55%,#006B5E 100%)',padding:'18px 28px 22px',boxShadow:'0 4px 24px rgba(0,0,0,.3)'}}>
+        <div style={{maxWidth:1380,margin:'0 auto'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:12,marginBottom:18}}>
+            <div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.1</span></div>
+              </div>
+              <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
+                <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
+                  background:syncStatus==='live'?'#10b981':syncStatus==='loading'?'#f59e0b':'#64748b',
+                  boxShadow:syncStatus==='live'?'0 0 8px #10b981':'none'}}/>
+                <span style={{color:'#99f6e4'}}>
+                  {syncStatus==='live'?`✅ Sincronizado desde Google Drive · ${data.length} OTs`:
+                   syncStatus==='loading'?'🔄 Conectando con Drive...':
+                   `📋 Datos locales · ${data.length} OTs`}
+                </span>
+              </div>
+            </div>
+            <a href={SHEET_LINK} target="_blank" rel="noreferrer" style={{background:'rgba(255,255,255,.1)',color:'#99f6e4',border:'1px solid rgba(255,255,255,.2)',borderRadius:10,padding:'8px 16px',fontSize:12,fontWeight:700,textDecoration:'none'}}>🔗 Google Drive</a>
+          </div>
+          {/* Tab Nav */}
+          <div style={{display:'flex',gap:8,marginTop:14}}>
+            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['config','⚙️ Config']].map(([t,label])=>(
+              <button key={t} onClick={()=>setActiveTab(t)} style={{
+                padding:'8px 18px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,
+                background:activeTab===t?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)',
+                color:activeTab===t?'#fff':'#99f6e4',
+                borderBottom:activeTab===t?'2px solid #818cf8':'2px solid transparent',
+              }}>{label}</button>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+            {kpis.map(k=>(
+              <div key={k.label} style={{background:'rgba(255,255,255,.07)',backdropFilter:'blur(10px)',borderRadius:14,padding:'14px 20px',borderLeft:`3px solid ${k.color}`,flex:1,minWidth:110}}>
+                <div style={{fontSize:28,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
+                <div style={{fontSize:10,color:'rgba(255,255,255,.55)',marginTop:4,fontWeight:700,letterSpacing:.8}}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {activeTab==='distribuidores' && <DistribuidoresTab data={filtered} sheetDistri={sheetDistri}/>}
+      {activeTab==='config' && <ConfigTab sheetOts={sheetOts} sheetDistri={sheetDistri} onSave={handleConfigSave}/>}
+      {activeTab==='dashboard' && <div style={{display:'none'}}/>}
+      <div style={{maxWidth:1380,margin:'0 auto',padding:'22px 20px',display: activeTab==='dashboard' ? 'grid' : 'none',gridTemplateColumns:'360px 1fr',gap:20,alignItems:'start'}}>
+
+        {/* PANEL PROVINCIAS */}
+        <div style={{position:'sticky',top:20}}>
+          <div style={{background:'#fff',borderRadius:20,padding:'20px 18px',boxShadow:'0 2px 16px rgba(0,0,0,.07)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div>
+                <div style={{fontWeight:900,color:'#1e293b',fontSize:15}}>Provincias / Regiones</div>
+                <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Ordenadas por cantidad de OTs · clic para detalle</div>
+              </div>
+              {selectedSector && (
+                <button onClick={()=>setSelectedSector(null)} style={{fontSize:11,fontWeight:700,color:'#00BFA5',background:'#E0F2F1',border:'none',borderRadius:8,padding:'5px 10px',cursor:'pointer'}}>✕ Limpiar</button>
+              )}
+            </div>
+
+            <div style={{maxHeight:580,overflowY:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead>
+                  <tr style={{borderBottom:'2px solid #e2e8f0'}}>
+                    <th style={{padding:'5px 6px',textAlign:'left',fontSize:10,fontWeight:700,color:'#94a3b8',width:24}}>#</th>
+                    <th style={{padding:'5px 6px',textAlign:'left',fontSize:10,fontWeight:700,color:'#94a3b8'}}>PROVINCIA / REGIÓN</th>
+                    <th style={{padding:'5px 6px',textAlign:'right',fontSize:10,fontWeight:700,color:'#94a3b8',width:40}}>OTs</th>
+                    <th style={{padding:'5px 6px',textAlign:'left',fontSize:10,fontWeight:700,color:'#94a3b8',width:80}}>ESTADOS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sectorStats.map(([sector, stats], idx) => {
+                    const isSel = selectedSector === sector;
+                    const baStyle = isBA(sector);
+                    const pct = Math.round((stats.total / maxCount) * 100);
+                    const rowBg = isSel ? '#E0F2F1' : 'transparent';
+                    return (
+                      <tr key={sector}
+                        onClick={()=>setSelectedSector(isSel?null:sector)}
+                        style={{cursor:'pointer',background:rowBg,borderBottom:'1px solid #f1f5f9'}}
+                        onMouseEnter={e=>{ if(!isSel) e.currentTarget.style.background='#f8fafc'; }}
+                        onMouseLeave={e=>{ if(!isSel) e.currentTarget.style.background='transparent'; }}>
+                        <td style={{padding:'8px 6px',fontSize:11,fontWeight:700,color:isSel?'#00897B':'#94a3b8',verticalAlign:'top'}}>
+                          {idx+1}
+                        </td>
+                        <td style={{padding:'8px 6px',verticalAlign:'top'}}>
+                          <div style={{fontSize:13,fontWeight:700,color:isSel?'#004D40':baStyle?'#5b21b6':'#1e293b',marginBottom:5,lineHeight:1.3}}>
+                            {baStyle
+                              ? <span><span style={{fontSize:10,fontWeight:400,color:'#94a3b8'}}>Bs As · </span>{sector.split('— ')[1]}</span>
+                              : sector}
+                          </div>
+                          <div style={{height:4,borderRadius:2,background:'#e2e8f0'}}>
+                            <div style={{height:'100%',width:pct+'%',minWidth:4,borderRadius:2,background:isSel?'#00897B':baStyle?'#8b5cf6':'#5eead4'}}/>
+                          </div>
+                        </td>
+                        <td style={{padding:'8px 6px',textAlign:'right',fontSize:18,fontWeight:900,color:isSel?'#00897B':baStyle?'#6d28d9':'#334155',verticalAlign:'top',whiteSpace:'nowrap'}}>
+                          {stats.total}
+                        </td>
+                        <td style={{padding:'8px 6px',verticalAlign:'top'}}>
+                          {[['P',stats.Pendiente,'#f59e0b'],['EP',stats['En Proceso'],'#3b82f6'],['EX',stats.Extraviada,'#ef4444'],['D',stats.Despachado,'#10b981']]
+                            .filter(([,v])=>v>0).map(([lbl,val,col])=>(
+                            <div key={lbl} style={{fontSize:10,fontWeight:700,color:col,whiteSpace:'nowrap',lineHeight:1.7}}>
+                              <span style={{background:col+'22',borderRadius:3,padding:'0 4px',marginRight:3}}>{lbl}</span>{val}
+                            </div>
+                          ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* PANEL SIN CP */}
+        {(() => {
+          const sinCp = filtered.filter(r => !r.CP);
+          if (sinCp.length === 0) return null;
+          const sinProv = sinCp.filter(r => !r.Provincia || r.Provincia === 'Sin dato');
+          const conTexto = sinCp.filter(r => r.Provincia && r.Provincia !== 'Sin dato');
+          return (
+            <div style={{background:'#fffbeb',borderRadius:20,padding:'16px 18px',boxShadow:'0 2px 16px rgba(0,0,0,.07)',marginBottom:16,border:'1px solid #fcd34d'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:16}}>⚠️</span>
+                  <div>
+                    <div style={{fontWeight:900,color:'#92400e',fontSize:13}}>Sin Código Postal</div>
+                    <div style={{fontSize:11,color:'#b45309',marginTop:1}}>{sinCp.length} OTs sin CP · no se puede calcular distancia</div>
+                  </div>
+                </div>
+                <button onClick={()=>setSinCpFilter(sinCpFilter?null:'sinProv')} style={{
+                  background:'#f59e0b',color:'#fff',border:'none',borderRadius:9,
+                  padding:'7px 14px',fontSize:11,fontWeight:800,cursor:'pointer',
+                  display:'flex',alignItems:'center',gap:5
+                }}>👁 {sinCpFilter?'Ocultar':'Ver listado'}</button>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <div onClick={()=>setSinCpFilter(sinCpFilter==='sinProv'?null:'sinProv')} style={{flex:1,background:sinCpFilter==='sinProv'?'#fcd34d':'#fef3c7',borderRadius:10,padding:'10px 14px',border:sinCpFilter==='sinProv'?'2px solid #f59e0b':'1px solid #fcd34d',cursor:'pointer'}}>
+                  <div style={{fontSize:22,fontWeight:900,color:'#d97706'}}>{sinProv.length}</div>
+                  <div style={{fontSize:10,color:'#92400e',fontWeight:700,marginTop:2}}>SIN PROVINCIA NI CP</div>
+                  <div style={{fontSize:10,color:'#b45309',marginTop:2}}>{sinCpFilter==='sinProv'?'▲ Ocultar':'Clic para ver →'}</div>
+                </div>
+                <div onClick={()=>setSinCpFilter(sinCpFilter==='conProv'?null:'conProv')} style={{flex:1,background:sinCpFilter==='conProv'?'#fed7aa':'#fff7ed',borderRadius:10,padding:'10px 14px',border:sinCpFilter==='conProv'?'2px solid #ea580c':'1px solid #fed7aa',cursor:'pointer'}}>
+                  <div style={{fontSize:22,fontWeight:900,color:'#ea580c'}}>{conTexto.length}</div>
+                  <div style={{fontSize:10,color:'#92400e',fontWeight:700,marginTop:2}}>CON PROVINCIA SIN CP</div>
+                  <div style={{fontSize:10,color:'#b45309',marginTop:2}}>{sinCpFilter==='conProv'?'▲ Ocultar':'Clic para ver →'}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+
+        {/* INLINE SIN CP TABLE */}
+        {sinCpFilter && (() => {
+          const sinCp = filtered.filter(r => !r.CP);
+          const rows = sinCpFilter==='sinProv'
+            ? sinCp.filter(r=>!r.Provincia||r.Provincia==='Sin dato')
+            : sinCp.filter(r=>r.Provincia&&r.Provincia!=='Sin dato');
+          const title = sinCpFilter==='sinProv' ? '⚠️ Sin Provincia ni CP' : '📍 Con Provincia pero sin CP';
+          return (
+            <div style={{background:'#fffbeb',borderRadius:18,border:'2px solid #fcd34d',overflow:'hidden',marginBottom:16}}>
+              <div style={{padding:'12px 18px',borderBottom:'1px solid #fcd34d',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div>
+                  <span style={{fontWeight:800,color:'#92400e',fontSize:13}}>{title}</span>
+                  <span style={{marginLeft:10,fontSize:11,color:'#b45309'}}>{rows.length} registros</span>
+                </div>
+                <button onClick={()=>setSinCpFilter(null)} style={{background:'#f59e0b',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:11,fontWeight:700,cursor:'pointer'}}>✕ Cerrar</button>
+              </div>
+              <div style={{overflowX:'auto',maxHeight:340,overflowY:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                  <thead style={{position:'sticky',top:0,background:'#fffbeb',zIndex:1}}>
+                    <tr>{['OT','Comercio','Logística','Estado','Zona','Ciudad','Provincia','Dirección','Contacto'].map(h=>(
+                      <th key={h} style={{padding:'8px 12px',textAlign:'left',fontWeight:700,color:'#92400e',borderBottom:'2px solid #fcd34d',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r,i)=>{
+                      const ec=ESTADO_C[r.Estado];
+                      return(
+                        <tr key={i} onClick={()=>setOtModal(r)} style={{borderBottom:'1px solid #fef3c7',background:i%2===0?'#fffbeb':'#fff',cursor:'pointer'}}
+                          onMouseEnter={e=>e.currentTarget.style.background='#fef3c7'}
+                          onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'#fffbeb':'#fff'}>
+                          <td style={{padding:'7px 12px',fontWeight:800,color:'#d97706',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                          <td style={{padding:'7px 12px',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
+                          <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Logistica}</td>
+                          <td style={{padding:'7px 12px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 7px',fontSize:10,fontWeight:700}}>{r.Estado}</span>:r.Estado}</td>
+                          <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Zona}</td>
+                          <td style={{padding:'7px 12px',color:'#475569'}}>{r.Ciudad}</td>
+                          <td style={{padding:'7px 12px',color:'#92400e',fontWeight:600,fontSize:11}}>{r.Provincia||'—'}</td>
+                          <td style={{padding:'7px 12px',color:'#64748b',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Calle}</td>
+                          <td style={{padding:'7px 12px',color:'#475569',whiteSpace:'nowrap',fontSize:11}}>{r.Contacto}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* PANEL TABLA */}
+        <div>
+          <div style={{background:'#fff',borderRadius:18,padding:'16px 20px',boxShadow:'0 2px 12px rgba(0,0,0,.06)',marginBottom:16}}>
+            <div style={{display:'flex',gap:16,flexWrap:'wrap',alignItems:'flex-start'}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:7,letterSpacing:.6}}>ZONA</div>
+                <div style={{display:'flex',gap:5,flexWrap:'wrap'}}><Btn items={['Todas','CABA','GBA','PBA','INTERIOR','Sin Zona']} cur={zonaF} set={setZonaF}/></div>
+              </div>
+              <div>
+                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:7,letterSpacing:.6}}>ESTADO</div>
+                <div style={{display:'flex',gap:5,flexWrap:'wrap'}}><Btn items={['Todos','Pendiente','En Proceso','Extraviada','Despachado']} cur={estadoF} set={setEstadoF} colors={ESTADO_C}/></div>
+              </div>
+              <div style={{marginLeft:'auto'}}>
+                <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:7,letterSpacing:.6}}>BUSCAR</div>
+                <input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} placeholder="OT, comercio, provincia, CP..."
+                  style={{padding:'7px 13px',borderRadius:9,border:'1px solid #e2e8f0',fontSize:12,width:230,fontFamily:'inherit',outline:'none'}}/>
+              </div>
+            </div>
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',marginBottom:7,letterSpacing:.6}}>LOGÍSTICA</div>
+              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}><Btn items={logisticas} cur={logF} set={setLogF}/></div>
+            </div>
+          </div>
+
+          <div style={{background:'#fff',borderRadius:18,boxShadow:'0 2px 12px rgba(0,0,0,.06)',overflow:'hidden'}}>
+            <div style={{padding:'14px 20px',borderBottom:'1px solid #f1f5f9',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontWeight:800,color:'#1e293b',fontSize:14}}>
+                {selectedSector ? <><span style={{color:'#00BFA5'}}>📍 {selectedSector}</span> · </> : ''}{filtered.length} Órdenes de Trabajo
+              </span>
+              <span style={{fontSize:11,color:'#94a3b8'}}>Pág {page+1}/{totalPages||1} · Clic en fila para detalle</span>
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead>
+                  <tr style={{background:'#f8fafc'}}>
+                    {['Orden de Trabajo','Comercio','Logística','Estado','Zona','Provincia','CP','Ciudad'].map(h=>(
+                      <th key={h} style={{padding:'9px 14px',textAlign:'left',fontWeight:700,color:'#475569',borderBottom:'2px solid #e2e8f0',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paged.map((r,i)=>{
+                    const zc=ZONA_C[r.Zona]; const ec=ESTADO_C[r.Estado];
+                    return (
+                      <tr key={i} onClick={()=>setOtModal(r)} style={{borderBottom:'1px solid #f8fafc',cursor:'pointer'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <td style={{padding:'9px 14px',fontWeight:800,color:'#00897B',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                        <td style={{padding:'9px 14px',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={r.Comercio}>{r.Comercio}</td>
+                        <td style={{padding:'9px 14px',color:'#64748b'}}>{r.Logistica}</td>
+                        <td style={{padding:'9px 14px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{r.Estado}</span>:r.Estado}</td>
+                        <td style={{padding:'9px 14px'}}>{zc?<span style={{background:zc.bg,color:zc.text,border:`1px solid ${zc.bd}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700}}>{r.Zona}</span>:r.Zona}</td>
+                        <td style={{padding:'9px 14px',color:'#475569'}}>{r.ProvNorm}</td>
+                        <td style={{padding:'9px 14px',fontFamily:'monospace',color:'#64748b',fontSize:11}}>{r.CP}</td>
+                        <td style={{padding:'9px 14px',color:'#64748b'}}>{r.Ciudad}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {totalPages>1&&(
+              <div style={{display:'flex',gap:6,padding:'12px 20px',borderTop:'1px solid #f1f5f9',justifyContent:'center',alignItems:'center'}}>
+                {[['«',0],['‹',Math.max(0,page-1)],null,['›',Math.min(totalPages-1,page+1)],['»',totalPages-1]].map((item,i)=>
+                  item===null
+                    ?<span key={i} style={{fontSize:12,color:'#94a3b8',padding:'0 8px'}}>{page+1} / {totalPages}</span>
+                    :<button key={i} onClick={()=>setPage(item[1])} style={{padding:'6px 11px',borderRadius:7,border:'1px solid #e2e8f0',cursor:'pointer',background:'#fff',color:'#64748b'}}>{item[0]}</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+      
+
+      {activeTab==='dashboard' && selectedSector && sectorOTs.length>0 && (
+        <ProvModal sector={selectedSector} ots={sectorOTs} onClose={()=>setSelectedSector(null)} onOtClick={setOtModal} allData={data} cpCoords={CP_COORDS}/>
+      )}
+      <OtModal ot={otModal} onClose={()=>setOtModal(null)}/>
+    </div>
+  );
+}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
 </body>
 </html>
