@@ -470,7 +470,7 @@ function OtModal({ot, onClose}){
 
 function DistribuidoresTab({data,sheetDistri}){
   const [distris,setDistris]=useState([]);
-  const [radios,setRadios]=useState({});
+  const [radios,setRadios]=useState(()=>{try{const saved={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('alleata_radios_')){saved[k.replace('alleata_radios_','')]=parseInt(localStorage.getItem(k));}}return saved;}catch(e){return {};}});
   const [loading,setLoading]=useState(true);
   const [otsModal,setOtsModal]=useState(null);
   const [editRadio,setEditRadio]=useState(null);
@@ -566,7 +566,7 @@ function DistribuidoresTab({data,sheetDistri}){
                       <input type="number" value={tmpRadio} onChange={e=>setTmpRadio(e.target.value)} min={5} max={500}
                         style={{width:65,padding:'5px 8px',borderRadius:7,border:'2px solid #00897B',fontSize:14,fontWeight:700,fontFamily:'inherit',outline:'none',textAlign:'center'}}/>
                       <span style={{fontSize:11,color:'#00695C',fontWeight:700}}>km</span>
-                      <button onClick={()=>{const v=parseInt(tmpRadio)||radio;setRadios(prev=>({...prev,[d.id]:v}));setEditRadio(null);}} style={{background:'#00897B',color:'#fff',border:'none',borderRadius:7,padding:'5px 10px',fontSize:12,fontWeight:700,cursor:'pointer'}}>✓</button>
+                      <button onClick={()=>{const v=parseInt(tmpRadio)||radio;const nr={...radios,[d.id]:v};setRadios(nr);try{localStorage.setItem('alleata_radios_'+d.id,v);}catch(e){}setEditRadio(null);}} style={{background:'#00897B',color:'#fff',border:'none',borderRadius:7,padding:'5px 10px',fontSize:12,fontWeight:700,cursor:'pointer'}}>✓</button>
                       <button onClick={()=>setEditRadio(null)} style={{background:'#e2e8f0',color:'#64748b',border:'none',borderRadius:7,padding:'5px 8px',fontSize:12,cursor:'pointer'}}>✕</button>
                     </div>
                   ):(
