@@ -249,6 +249,24 @@
     .modal-pill.contactado  { background: #dbeafe; color: #1d4ed8; }
     .modal-pill.no-encontrado { background: #fee2e2; color: #dc2626; }
     .modal-pill.retirado    { background: #d1fae5; color: #059669; }
+    .modal-pill.confirmado  { background: #fef3c7; color: #d97706; border: 2px solid #fcd34d; }
+    .modal-pill.confirmado.active { border-color: #d97706; }
+    /* Date picker row in modal */
+    .modal-fecha-retiro {
+      margin: 0 22px 0;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .modal-fecha-retiro.show { display: flex; }
+    .modal-fecha-retiro label { font-size:11px; font-weight:700; color:#d97706; letter-spacing:.5px; }
+    .modal-fecha-retiro input {
+      width:100%; padding:10px 14px; border-radius:12px;
+      border:2px solid #fcd34d; font-family:inherit;
+      font-size:15px; outline:none; color:var(--navy);
+      background:#fffbeb;
+    }
+    .modal-fecha-retiro input:focus { border-color:#d97706; }
     .modal-pill.active { border-color: currentColor; transform: scale(1.05); }
     .modal-obs {
       margin: 14px 22px 0;
@@ -386,6 +404,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" id="tab-ots" onclick="switchTab('ots')">📋 OTs</button>
       <button class="nav-tab" id="tab-agenda" onclick="switchTab('agenda')">📅 Agenda</button>
+      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Guía de Ruta</button>
     </div>
   </div>
   <div class="header-stats">
@@ -424,6 +443,23 @@
   </div>
 </div>
 
+<div id="ruta-view" style="display:none">
+  <div class="cal-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:20px;font-weight:900;color:var(--navy)">🗺️ Guía de Ruta</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px">Compromisos de retiro confirmados</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="setRutaFiltro('todos')" id="rf-todos" class="filter-btn active" style="font-size:12px;padding:6px 14px">Todos</button>
+        <button onclick="setRutaFiltro('pendiente')" id="rf-pendiente" class="filter-btn" style="font-size:12px;padding:6px 14px">⏳ Pendiente</button>
+        <button onclick="setRutaFiltro('hoy')" id="rf-hoy" class="filter-btn" style="font-size:12px;padding:6px 14px">🔔 Hoy</button>
+        <button onclick="setRutaFiltro('vencido')" id="rf-vencido" class="filter-btn" style="font-size:12px;padding:6px 14px">⚠️ Vencido</button>
+      </div>
+    </div>
+    <div id="ruta-list"></div>
+  </div>
+</div>
 <div class="agenda-detail" id="agenda-detail" style="display:none" onclick="if(event.target===this)closeAgendaDetail()">
   <div class="agenda-detail-box">
     <div style="background:linear-gradient(135deg,#0A2540,#063D52);padding:18px 22px;color:#fff">
@@ -457,9 +493,14 @@
       <button class="modal-pill contactado" id="pill-contactado" onclick="selectPill('Contactado')">📞 Contactado</button>
       <button class="modal-pill no-encontrado" id="pill-no-encontrado" onclick="selectPill('No encontrado')">❌ No encontrado</button>
       <button class="modal-pill retirado" id="pill-retirado" onclick="selectPill('Retirado')">✅ Retirado</button>
+      <button class="modal-pill confirmado" id="pill-confirmado" onclick="selectPill('Confirmado retiro')">📦 Confirmado retiro</button>
     </div>
     <div class="modal-obs">
       <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
+    </div>
+    <div class="modal-fecha-retiro" id="modal-fecha-retiro">
+      <label>📅 FECHA DE RETIRO</label>
+      <input type="date" id="modal-fecha-input"/>
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
@@ -556,11 +597,19 @@ function openModal(ot, comercio, estadoSugerido){
 
 function selectPill(estado){
   modalEstado = estado;
-  ['Contactado','No encontrado','Retirado'].forEach(e=>{
-    const id = 'pill-' + e.toLowerCase().replace(/ /g,'-');
+  ['Contactado','No encontrado','Retirado','Confirmado retiro'].forEach(e=>{
+    const id = 'pill-' + e.toLowerCase().replace(/\s+/g,'-');
     const el = document.getElementById(id);
     if(el) el.classList.toggle('active', e===estado);
   });
+  // Show date picker only for Confirmado retiro
+  const fechaRow = document.getElementById('modal-fecha-retiro');
+  if(fechaRow) fechaRow.classList.toggle('show', estado==='Confirmado retiro');
+  // Pre-fill with existing agenda date if any
+  if(estado==='Confirmado retiro' && modalOt){
+    const ag = agenda[String(modalOt)];
+    if(ag && ag.fechaRetiro) document.getElementById('modal-fecha-input').value = ag.fechaRetiro;
+  }
 }
 
 function closeModal(){
@@ -571,16 +620,29 @@ function closeModal(){
 function saveModal(){
   if(!modalOt || !modalEstado) return;
   const obs = document.getElementById('modal-obs').value.trim();
-  const fecha = new Date().toLocaleString('es-AR',{
+  const fechaMod = new Date().toLocaleString('es-AR',{
     day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',second:'2-digit'
   });
-  estados[String(modalOt)] = { estado: modalEstado, obs, fecha };
+
+  // If Confirmado retiro, require date and save to agenda
+  if(modalEstado === 'Confirmado retiro'){
+    const fechaRetiro = document.getElementById('modal-fecha-input').value;
+    if(!fechaRetiro){ toast('⚠️ Elegí la fecha de retiro'); return; }
+    agenda[String(modalOt)] = { fecha: fechaRetiro, fechaRetiro, tipo: 'retiro' };
+    saveAgendaLocal();
+  }
+
+  estados[String(modalOt)] = { estado: modalEstado, obs, fecha: fechaMod };
   saveEstado(modalOt);
   const otNum = modalOt;
   closeModal();
-  toast('✅ OT #' + otNum + ' → ' + modalEstado);
+  const d = modalEstado==='Confirmado retiro'
+    ? '📦 OT #'+otNum+' confirmada para '+new Date(document.getElementById('modal-fecha-input')?.value+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'})
+    : '✅ OT #'+otNum+' → '+modalEstado;
+  toast(d);
   renderAll();
+  if(currentTab==='agenda') renderCalendar();
 }
 
 // ─── RENDER ───────────────────────────────────────────────────
@@ -794,10 +856,13 @@ function switchTab(tab){
   currentTab = tab;
   document.getElementById('tab-ots').classList.toggle('active', tab==='ots');
   document.getElementById('tab-agenda').classList.toggle('active', tab==='agenda');
+  document.getElementById('tab-ruta').classList.toggle('active', tab==='ruta');
   document.getElementById('content').style.display = tab==='ots'?'block':'none';
   document.querySelector('.filters').style.display = tab==='ots'?'flex':'none';
   document.getElementById('agenda-view').style.display = tab==='agenda'?'block':'none';
+  document.getElementById('ruta-view').style.display = tab==='ruta'?'block':'none';
   if(tab==='agenda') renderCalendar();
+  if(tab==='ruta') renderRuta('todos');
 }
 
 // ─── AGENDA ───────────────────────────────────────────────────
@@ -875,7 +940,7 @@ function renderCalendar(){
     if(!val.fecha) return;
     if(!otMap[val.fecha]) otMap[val.fecha] = [];
     const r = allOts.find(o=>String(o.OT)===String(ot));
-    otMap[val.fecha].push({ot, comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||''});
+    otMap[val.fecha].push({ot, comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'', tipo: val.tipo||'contacto', calle: r?.Calle||''});
   });
 
   // First day of month
@@ -917,6 +982,1127 @@ function renderCalendar(){
       <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
       ${evHTML}${extra}
     </div>`;
+  }).join('');
+}
+
+// ─── GUÍA DE RUTA ─────────────────────────────────────────────
+let rutaFiltro = 'todos';
+
+function setRutaFiltro(f){
+  rutaFiltro = f;
+  ['todos','pendiente','hoy','vencido'].forEach(x=>{
+    const el = document.getElementById('rf-'+x);
+    if(el) el.classList.toggle('active', x===f);
+  });
+  renderRuta(f);
+}
+
+function renderRuta(filtro){
+  const today = new Date().toISOString().slice(0,10);
+  let retiros = Object.entries(agenda)
+    .filter(([,v])=>v.tipo==='retiro' && v.fechaRetiro)
+    .map(([ot,v])=>{
+      const r = allOts.find(o=>String(o.OT)===String(ot));
+      return { ot, fecha: v.fechaRetiro,
+        comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'',
+        calle: r?.Calle||'', contacto: r?.Contacto||'', dist: r?.Dist,
+        isHoy: v.fechaRetiro===today, isVencido: v.fechaRetiro<today, isPendiente: v.fechaRetiro>today };
+    })
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(filtro==='hoy')       retiros = retiros.filter(r=>r.isHoy);
+  if(filtro==='vencido')   retiros = retiros.filter(r=>r.isVencido);
+  if(filtro==='pendiente') retiros = retiros.filter(r=>r.isPendiente);
+  const list = document.getElementById('ruta-list');
+  if(!retiros.length){
+    list.innerHTML=`<div style="text-align:center;padding:60px 20px;color:#94a3b8"><div style="font-size:40px;margin-bottom:12px">📦</div><div style="font-weight:700">Sin compromisos de retiro${filtro!=='todos'?' en esta categoría':''}</div><div style="font-size:12px;margin-top:8px">Marcá una OT como "Confirmado retiro" para verla acá</div></div>`;
+    return;
+  }
+  const byDate = {};
+  retiros.forEach(r=>{ if(!byDate[r.fecha]) byDate[r.fecha]=[]; byDate[r.fecha].push(r); });
+  list.innerHTML = Object.entries(byDate).map(([fecha, items])=>{
+    const d = new Date(fecha+'T12:00:00');
+    const label = d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    const isHoy = fecha===today, isVen = fecha<today;
+    const hColor = isVen?'#ef4444':isHoy?'#059669':'#d97706';
+    const hBg    = isVen?'#fee2e2':isHoy?'#d1fae5':'#fef3c7';
+    const tag    = isVen?'⚠️ VENCIDO':isHoy?'🔔 HOY':'📅 PROGRAMADO';
+    const borderColor = isVen?'#fca5a5':isHoy?'#6ee7b7':'#fcd34d';
+    const cards = items.map(item=>{
+      const mapsUrl = encodeURIComponent((item.calle||item.comercio)+', '+(item.ciudad||'Argentina')+', Argentina');
+      const waUrl   = item.contacto ? 'https://wa.me/'+item.contacto.replace(/\D/g,'') : null;
+      return `<div style="background:#fff;border-radius:14px;border:2px solid ${borderColor};padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--teal-dark)">OT #${item.ot}</div>
+            <div style="font-size:16px;font-weight:900;color:var(--navy);margin-top:2px">${item.comercio}</div>
+            ${item.ciudad?`<div style="font-size:12px;color:#64748b;margin-top:3px">📍 ${item.calle?item.calle+', ':''}${item.ciudad}</div>`:''}
+          </div>
+          ${item.dist!=null?`<div style="background:#f1f5f9;color:#475569;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0">${item.dist<2?'En ciudad':item.dist+' km'}</div>`:''}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <a href="https://www.google.com/maps/search/?api=1&query=${mapsUrl}" target="_blank"
+             style="flex:1;min-width:100px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:#4285F4;color:#fff;text-decoration:none;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700">📍 Ver ruta</a>
+          ${waUrl?`<a href="${waUrl}" target="_blank" style="flex:1;min-width:100px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700">💬 WhatsApp</a>`:''}
+          <button onclick="openAgendaDetail('${item.ot}','${item.comercio.replace(/'/g,"\'")}','${item.ciudad}','${item.fecha}')"
+            style="background:#fff;border:2px solid #e2e8f0;color:#64748b;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="background:${hBg};color:${hColor};border-radius:8px;padding:4px 12px;font-size:11px;font-weight:800">${tag}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--navy);text-transform:capitalize">${label}</div>
+      <div style="background:${hColor}22;color:${hColor};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length} retiro${items.length>1?'s':''}</div>
+    </div>${cards}</div>`;
+  }).join('');
+}
+</script>
+</body>
+</html      const evHTML = events.slice(0,3).map(e=>{
+      const isVencido = cell.dateStr<today;
+      const isHoy     = cell.dateStr===today;
+      const isRetiro  = e.tipo==='retiro';
+      const ecls = isVencido?'vencido':isHoy?'hoy':'';
+      const evStyle = isRetiro && !isVencido ? 'background:#fef3c7;color:#d97706;border-left:3px solid #f59e0b;border-radius:5px;' : '';
+      const icon = isRetiro ? '📦 ' : '📞 ';
+      return `<div class="cal-event ${ecls}" style="${evStyle}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="${isRetiro?'RETIRO':'Contacto'}: OT #${e.ot}">${icon}#${e.ot}</div>`;
+    }).join('');tml>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Alleata · Portal Distribuidor</title>
+  <link rel="icon" href="https://alleata.com.ar/favicon.ico"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --teal: #00BFA5;
+      --teal-dark: #00897B;
+      --teal-deeper: #004D40;
+      --navy: #0A2540;
+      --bg: #F0F7F6;
+      --white: #ffffff;
+      --slate: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); min-height: 100vh; }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #0A2540 0%, #063D52 60%, #006B5E 100%);
+      padding: 20px 20px 0;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 4px 24px rgba(0,0,0,.3);
+    }
+    .header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .header-logo { height: 28px; filter: brightness(0) invert(1); }
+    .header-divider { width: 1px; height: 28px; background: rgba(255,255,255,.25); }
+    .header-title { color: #fff; font-size: 15px; font-weight: 800; }
+    .header-sub { color: rgba(255,255,255,.55); font-size: 11px; margin-top: 2px; }
+    .distri-badge {
+      margin-left: auto;
+      background: rgba(0,191,165,.2);
+      border: 1px solid rgba(0,191,165,.4);
+      color: #5eead4;
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .header-stats {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+      margin: 0 -20px;
+    }
+    .stat-pill {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+    .stat-pill:last-child { border-right: none; }
+    .stat-num { font-size: 20px; font-weight: 900; color: #fff; line-height: 1; }
+    .stat-lbl { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.45); letter-spacing: .8px; margin-top: 3px; }
+
+    /* FILTERS */
+    .filters {
+      padding: 14px 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 99px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--slate);
+      transition: all .15s;
+    }
+    .filter-btn.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .search-box {
+      flex: 1; min-width: 140px;
+      padding: 7px 14px;
+      border-radius: 99px;
+      border: 2px solid var(--border);
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      color: var(--navy);
+    }
+    .search-box:focus { border-color: var(--teal); }
+
+    /* OT CARDS */
+    .ot-list { padding: 14px 14px 80px; display: flex; flex-direction: column; gap: 10px; }
+
+    .ot-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 2px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow .2s;
+    }
+    .ot-card.retirado { border-color: #10b981; }
+    .ot-card.contactado { border-color: #3b82f6; }
+    .ot-card.no-encontrado { border-color: #ef4444; }
+
+    .ot-card-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .ot-num { font-size: 13px; font-weight: 900; color: var(--teal-dark); }
+    .ot-comercio { font-size: 15px; font-weight: 800; color: var(--navy); margin-top: 2px; line-height: 1.3; }
+    .ot-cuenta { font-size: 11px; color: var(--slate); margin-top: 2px; }
+
+    .ot-dist-badge {
+      background: #E0F2F1;
+      color: var(--teal-deeper);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .ot-info {
+      padding: 0 16px 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .ot-info-item { display: flex; flex-direction: column; gap: 1px; }
+    .ot-info-lbl { font-size: 9px; font-weight: 700; color: #94a3b8; letter-spacing: .6px; }
+    .ot-info-val { font-size: 12px; font-weight: 600; color: var(--navy); line-height: 1.3; }
+    .ot-info-val.full { grid-column: 1 / -1; }
+
+    .ot-obs {
+      margin: 0 16px 10px;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--slate);
+      line-height: 1.5;
+      border-left: 3px solid var(--teal);
+    }
+
+    /* ACTION BUTTONS */
+    .ot-actions {
+      padding: 10px 12px 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      border-top: 1px solid var(--border);
+      background: #fafbfc;
+    }
+    .action-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 6px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all .15s;
+      border: 2px solid transparent;
+    }
+    .action-btn .icon { font-size: 20px; line-height: 1; }
+    .action-btn.contactado-btn  { background: #dbeafe; color: #1d4ed8; }
+    .action-btn.noenc-btn     { background: #fee2e2; color: #dc2626; }
+    .action-btn.retirado-btn  { background: #d1fae5; color: #059669; }
+    .action-btn.active { border-color: currentColor; transform: scale(1.03); box-shadow: 0 2px 12px rgba(0,0,0,.12); }
+
+    /* OBS INPUT */
+    .obs-input-wrap {
+      padding: 0 12px 12px;
+      background: #fafbfc;
+      display: none;
+    }
+    .obs-input-wrap.show { display: block; }
+    .obs-input {
+      width: 100%;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 12px;
+      resize: none;
+      outline: none;
+      color: var(--navy);
+    }
+    .obs-input:focus { border-color: var(--teal); }
+    .obs-confirm {
+      margin-top: 8px;
+      width: 100%;
+      background: var(--teal-dark);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* CONFIRM MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(10,37,64,.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500; padding: 20px;
+    }
+    .modal-box {
+      background: #fff; border-radius: 22px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 20px 22px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-ot { font-size: 12px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
+    .modal-comercio { font-size: 16px; font-weight: 900; color: var(--navy); }
+    .modal-estado-label {
+      margin: 16px 22px 0;
+      font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: .5px;
+    }
+    .modal-estado-pills {
+      display: flex; gap: 8px; padding: 10px 22px 0; flex-wrap: wrap;
+    }
+    .modal-pill {
+      padding: 8px 16px; border-radius: 99px; border: 2px solid transparent;
+      font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all .15s;
+    }
+    .modal-pill.contactado  { background: #dbeafe; color: #1d4ed8; }
+    .modal-pill.no-encontrado { background: #fee2e2; color: #dc2626; }
+    .modal-pill.retirado    { background: #d1fae5; color: #059669; }
+    .modal-pill.confirmado  { background: #fef3c7; color: #d97706; border: 2px solid #fcd34d; }
+    .modal-pill.confirmado.active { border-color: #d97706; }
+    /* Date picker row in modal */
+    .modal-fecha-retiro {
+      margin: 0 22px 0;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .modal-fecha-retiro.show { display: flex; }
+    .modal-fecha-retiro label { font-size:11px; font-weight:700; color:#d97706; letter-spacing:.5px; }
+    .modal-fecha-retiro input {
+      width:100%; padding:10px 14px; border-radius:12px;
+      border:2px solid #fcd34d; font-family:inherit;
+      font-size:15px; outline:none; color:var(--navy);
+      background:#fffbeb;
+    }
+    .modal-fecha-retiro input:focus { border-color:#d97706; }
+    .modal-pill.active { border-color: currentColor; transform: scale(1.05); }
+    .modal-obs {
+      margin: 14px 22px 0;
+    }
+    .modal-obs textarea {
+      width: 100%; border-radius: 12px; border: 2px solid var(--border);
+      padding: 10px 14px; font-family: inherit; font-size: 13px;
+      resize: none; outline: none; color: var(--navy);
+    }
+    .modal-obs textarea:focus { border-color: var(--teal); }
+    .modal-actions {
+      display: flex; gap: 10px; padding: 16px 22px 20px;
+    }
+    .modal-cancel {
+      flex: 1; background: #f1f5f9; color: #64748b; border: none;
+      border-radius: 12px; padding: 12px; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .modal-save {
+      flex: 2; background: linear-gradient(135deg,#00897B,#00BFA5); color: #fff;
+      border: none; border-radius: 12px; padding: 12px; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    /* TABS */
+    .nav-tabs {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 4px;
+      margin: 0 0 0 auto;
+    }
+    .nav-tab {
+      padding: 7px 18px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: rgba(255,255,255,.6);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .nav-tab.active { background: rgba(255,255,255,.18); color: #fff; }
+
+    /* CALENDAR */
+    .cal-wrap { max-width: 700px; margin: 0 auto; padding: 16px; }
+    .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .cal-title { font-size:18px; font-weight:900; color:var(--navy); }
+    .cal-nav { background:var(--bg); border:2px solid var(--border); border-radius:10px; padding:6px 14px; font-family:inherit; font-size:16px; cursor:pointer; color:var(--navy); }
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-dow { text-align:center; font-size:10px; font-weight:800; color:#94a3b8; padding:6px 0; letter-spacing:.5px; }
+    .cal-day {
+      min-height:72px; border-radius:12px; padding:6px;
+      background:#fff; border:2px solid var(--border);
+      position:relative; cursor:pointer; transition:border-color .15s;
+    }
+    .cal-day:hover { border-color:var(--teal); }
+    .cal-day.other-month { background:#f8fafc; opacity:.5; }
+    .cal-day.today { border-color:var(--teal); background:#E0F2F1; }
+    .cal-day.has-events { border-color:#3b82f6; }
+    .cal-day-num { font-size:12px; font-weight:800; color:var(--navy); }
+    .cal-event {
+      margin-top:3px; padding:2px 6px; border-radius:6px;
+      background:#dbeafe; color:#1d4ed8;
+      font-size:10px; font-weight:700;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      cursor:pointer;
+    }
+    .cal-event.vencido { background:#fee2e2; color:#dc2626; }
+    .cal-event.hoy { background:#d1fae5; color:#059669; }
+
+    /* DATE PICKER in modal */
+    .modal-date-input {
+      width:100%; padding:12px 14px; border-radius:12px;
+      border:2px solid var(--border); font-family:inherit;
+      font-size:16px; outline:none; color:var(--navy);
+      margin-top:8px;
+    }
+    .modal-date-input:focus { border-color:var(--teal); }
+
+    /* AGENDA EVENT DETAIL */
+    .agenda-detail {
+      position:fixed; inset:0; background:rgba(10,37,64,.7);
+      backdrop-filter:blur(4px); display:flex;
+      align-items:center; justify-content:center; z-index:600; padding:20px;
+    }
+    .agenda-detail-box {
+      background:#fff; border-radius:20px; width:100%; max-width:380px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden;
+    }
+
+    @media(min-width:768px){
+      .cal-wrap { max-width:960px; }
+      .cal-day { min-height:90px; }
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: var(--navy); color: #fff;
+      padding: 12px 22px; border-radius: 99px;
+      font-size: 13px; font-weight: 700;
+      box-shadow: 0 8px 30px rgba(0,0,0,.3);
+      z-index: 999;
+      opacity: 0; transition: opacity .3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 80px 20px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (min-width: 600px) {
+      .ot-list { max-width: 640px; margin: 0 auto; }
+      .filters { max-width: 640px; margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">Portal Distribuidor</div>
+      <div class="header-sub" id="header-sub">Cargando...</div>
+    </div>
+    <div class="distri-badge" id="distri-badge">...</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" id="tab-ots" onclick="switchTab('ots')">📋 OTs</button>
+      <button class="nav-tab" id="tab-agenda" onclick="switchTab('agenda')">📅 Agenda</button>
+      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Guía de Ruta</button>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-pill"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">TOTAL</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-pend" style="color:#fbbf24">—</div><div class="stat-lbl">PENDIENTES</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-visit" style="color:#60a5fa">—</div><div class="stat-lbl">CONTACTADAS</div></div>
+    <div class="stat-pill"><div class="stat-num" id="stat-ret" style="color:#34d399">—</div><div class="stat-lbl">RETIRADAS</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..."/>
+  <button class="filter-btn active" data-filter="todos">Todos</button>
+  <button class="filter-btn" data-filter="pendiente">Pendiente</button>
+  <button class="filter-btn" data-filter="contactado">Contactado</button>
+  <button class="filter-btn" data-filter="no-encontrado">No encontrado</button>
+  <button class="filter-btn" data-filter="retirado">Retirado</button>
+</div>
+
+<div id="content">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div style="font-weight:700;color:#475569;font-size:14px">Cargando tus OTs...</div>
+  </div>
+</div>
+
+<div id="agenda-view" style="display:none">
+  <div class="cal-wrap">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">‹</button>
+      <div class="cal-title" id="cal-title"></div>
+      <button class="cal-nav" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-grid" id="cal-dow"></div>
+    <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<div class="agenda-detail" id="agenda-detail" style="display:none" onclick="if(event.target===this)closeAgendaDetail()">
+  <div class="agenda-detail-box">
+    <div style="background:linear-gradient(135deg,#0A2540,#063D52);padding:18px 22px;color:#fff">
+      <div style="font-size:12px;font-weight:700;color:#5eead4" id="ad-ot"></div>
+      <div style="font-size:16px;font-weight:900;margin-top:4px" id="ad-comercio"></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:4px" id="ad-ciudad"></div>
+    </div>
+    <div style="padding:20px 22px">
+      <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:6px">PRÓXIMO CONTACTO</div>
+      <input type="date" class="modal-date-input" id="ad-date"/>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="closeAgendaDetail()" style="flex:1;background:#f1f5f9;color:#64748b;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="saveAgenda()" style="flex:2;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">💾 Guardar</button>
+        <button onclick="clearAgenda()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:12px;padding:12px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-ot" id="modal-ot-num"></div>
+      <div class="modal-comercio" id="modal-comercio"></div>
+    </div>
+    <div class="modal-estado-label">MARCAR COMO</div>
+    <div class="modal-estado-pills">
+      <button class="modal-pill contactado" id="pill-contactado" onclick="selectPill('Contactado')">📞 Contactado</button>
+      <button class="modal-pill no-encontrado" id="pill-no-encontrado" onclick="selectPill('No encontrado')">❌ No encontrado</button>
+      <button class="modal-pill retirado" id="pill-retirado" onclick="selectPill('Retirado')">✅ Retirado</button>
+      <button class="modal-pill confirmado" id="pill-confirmado" onclick="selectPill('Confirmado retiro')">📦 Confirmado retiro</button>
+    </div>
+    <div class="modal-obs">
+      <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
+    </div>
+    <div class="modal-fecha-retiro" id="modal-fecha-retiro">
+      <label>📅 FECHA DE RETIRO</label>
+      <input type="date" id="modal-fecha-input"/>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-save" id="modal-save-btn" onclick="saveModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const DISTRI_PARAM = params.get('distri') || '';
+const SHEET_ID = params.get('sheet') || '1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY';
+const GID_DISTRI = params.get('gid_distri') || '107031751';
+const GID_OTS = params.get('gid_ots') || '1843553678';
+const WEBHOOK_URL = params.get('webhook') || '';
+const DISTRI_NAME = DISTRI_PARAM.replace(/_/g,' ');
+
+let allOts = [];
+let estados = {};
+let currentFilter = 'todos';
+let searchQ = '';
+
+// Modal state
+let modalOt = null;
+let modalEstado = null;
+
+function parseCSV(csv){
+  const lines = csv.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const heads = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line=>{
+    const vals=[]; let cur='', inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
+      else{cur+=ch;}
+    }
+    vals.push(cur.trim());
+    const o={};
+    heads.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'').trim();});
+    return o;
+  });
+}
+
+function toast(msg, duration=2500){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), duration);
+}
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+
+const CP_COORDS = {"1005":[-34.6037,-58.3816],"1289":[-34.639,-58.378],"1414":[-34.588,-58.44],"1425":[-34.588,-58.42],"1604":[-34.476,-58.52],"1625":[-34.349,-58.797],"1629":[-34.458,-58.914],"1640":[-34.492,-58.509],"1650":[-34.567,-58.539],"1657":[-34.588,-58.658],"1663":[-34.539,-58.706],"1700":[-34.617,-58.557],"1704":[-34.644,-58.565],"1708":[-34.653,-58.62],"1714":[-34.659,-58.665],"1748":[-34.604,-58.937],"1752":[-34.678,-58.529],"1757":[-34.748,-58.597],"1805":[-34.847,-58.515],"1821":[-34.7,-58.405],"1824":[-34.705,-58.4],"1827":[-34.765,-58.423],"1832":[-34.765,-58.423],"1836":[-34.801,-58.454],"1856":[-34.894,-58.399],"1862":[-34.944,-58.47],"1875":[-34.705,-58.315],"1880":[-34.763,-58.208],"1886":[-34.836,-58.193],"1900":[-34.9205,-57.9536],"1984":[-34.995,-58.006],"2000":[-32.9468,-60.6393],"2800":[-34.098,-59.027],"2900":[-33.3347,-60.2117],"3000":[-31.6333,-60.7],"3100":[-31.7333,-60.5167],"3300":[-27.3671,-55.896],"3400":[-27.4806,-58.8341],"3500":[-27.4514,-58.9867],"3600":[-26.1775,-58.1781],"4000":[-26.8083,-65.2176],"4400":[-24.7821,-65.4232],"4600":[-24.1857,-65.2994],"5000":[-31.4135,-64.1811],"5151":[-31.3456,-64.3376],"5152":[-31.3456,-64.3376],"5500":[-32.8908,-68.8272],"5800":[-33.1232,-64.3493],"5900":[-32.4072,-63.2409],"6000":[-34.5667,-60.9167],"6700":[-34.5696,-59.1076],"7000":[-37.325,-59.1392],"7174":[-37.643,-57.706],"7300":[-36.7756,-59.8578],"7400":[-36.8921,-60.3224],"7600":[-38.0023,-57.5575],"7601":[-38.0023,-57.5575],"7602":[-38.0023,-57.5575],"7603":[-38.0023,-57.5575],"7604":[-38.0023,-57.5575],"7607":[-38.272,-57.837],"7608":[-38.0023,-57.5575],"7609":[-37.875,-57.523],"7610":[-38.0023,-57.5575],"7620":[-37.754,-58.287],"7630":[-38.554,-58.746],"8000":[-38.7183,-62.2663],"8300":[-38.9516,-68.0591],"8400":[-41.1335,-71.3103],"8500":[-40.8135,-62.9967],"9000":[-45.8645,-67.4977]};
+
+function extractCP(r){
+  const raw=(r.CP_extraido||r.CP||'');
+  const stripped=raw.replace(/^[A-Za-z]/,'').replace(/\D/g,'').slice(0,5);
+  if(stripped.length>=4) return stripped;
+  const colB=(r.b||'').toString().trim();
+  const mB=colB.match(/[A-Z](\d{4})/);
+  if(mB) return mB[1];
+  const mB2=colB.match(/\b(\d{4,5})\b/);
+  if(mB2) return mB2[1];
+  return '';
+}
+
+function getEstado(ot){ return estados[String(ot)]?.estado||''; }
+function getObs(ot){ return estados[String(ot)]?.obs||''; }
+function getFecha(ot){ return estados[String(ot)]?.fecha||''; }
+
+function estadoClass(est){
+  if(est==='Retirado') return 'retirado';
+  if(est==='Contactado') return 'contactado';
+  if(est==='No encontrado') return 'no-encontrado';
+  return '';
+}
+
+// ─── MODAL ────────────────────────────────────────────────────
+function openModal(ot, comercio, estadoSugerido){
+  modalOt = String(ot);
+  const current = getEstado(ot);
+  document.getElementById('modal-ot-num').textContent = 'OT #' + ot;
+  document.getElementById('modal-comercio').textContent = comercio;
+  document.getElementById('modal-obs').value = getObs(ot);
+  selectPill(estadoSugerido || current || 'Contactado');
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function selectPill(estado){
+  modalEstado = estado;
+  ['Contactado','No encontrado','Retirado','Confirmado retiro'].forEach(e=>{
+    const id = 'pill-' + e.toLowerCase().replace(/\s+/g,'-');
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('active', e===estado);
+  });
+  // Show date picker only for Confirmado retiro
+  const fechaRow = document.getElementById('modal-fecha-retiro');
+  if(fechaRow) fechaRow.classList.toggle('show', estado==='Confirmado retiro');
+  // Pre-fill with existing agenda date if any
+  if(estado==='Confirmado retiro' && modalOt){
+    const ag = agenda[String(modalOt)];
+    if(ag && ag.fechaRetiro) document.getElementById('modal-fecha-input').value = ag.fechaRetiro;
+  }
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display = 'none';
+  modalOt = null; modalEstado = null;
+}
+
+function saveModal(){
+  if(!modalOt || !modalEstado) return;
+  const obs = document.getElementById('modal-obs').value.trim();
+  const fechaMod = new Date().toLocaleString('es-AR',{
+    day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit'
+  });
+
+  // If Confirmado retiro, require date and save to agenda
+  if(modalEstado === 'Confirmado retiro'){
+    const fechaRetiro = document.getElementById('modal-fecha-input').value;
+    if(!fechaRetiro){ toast('⚠️ Elegí la fecha de retiro'); return; }
+    agenda[String(modalOt)] = { fecha: fechaRetiro, fechaRetiro, tipo: 'retiro' };
+    saveAgendaLocal();
+  }
+
+  estados[String(modalOt)] = { estado: modalEstado, obs, fecha: fechaMod };
+  saveEstado(modalOt);
+  const otNum = modalOt;
+  closeModal();
+  const d = modalEstado==='Confirmado retiro'
+    ? '📦 OT #'+otNum+' confirmada para '+new Date(document.getElementById('modal-fecha-input')?.value+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'})
+    : '✅ OT #'+otNum+' → '+modalEstado;
+  toast(d);
+  renderAll();
+  if(currentTab==='agenda') renderCalendar();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────
+function renderCard(r){
+  const est = getEstado(r.OT);
+  const obs = getObs(r.OT);
+  const fecha = getFecha(r.OT);
+  const ec = estadoClass(est);
+  const estBadge = est ? `<span style="background:${est==='Retirado'?'#d1fae5':est==='Contactado'?'#dbeafe':'#fee2e2'};color:${est==='Retirado'?'#059669':est==='Contactado'?'#1d4ed8':'#dc2626'};border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:6px">${est}</span>${fecha?`<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#94a3b8;margin-left:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:1px 7px">🕐 <b style='color:#475569'>Últ. modificación:</b> ${fecha}</span>`:''}` : '';
+  const mapsUrl = encodeURIComponent((r.Calle||'')+(r.Ciudad?', '+r.Ciudad:'')+', Argentina');
+
+  return `
+  <div class="ot-card ${ec}" id="card-${r.OT}">
+    <div class="ot-card-header">
+      <div>
+        <div class="ot-num">OT #${r.OT}${estBadge}</div>
+        <div class="ot-comercio">${r.Comercio||'Sin nombre'}</div>
+        ${r.Cuenta&&r.Cuenta!==r.Comercio?`<div class="ot-cuenta">${r.Cuenta}</div>`:''}
+      </div>
+      ${r.Dist!=null?`<div class="ot-dist-badge">${r.Dist<2?'En ciudad':r.Dist+' km'}</div>`:''}
+    </div>
+    <div class="ot-info">
+      ${r.Ciudad?`<div class="ot-info-item"><div class="ot-info-lbl">CIUDAD</div><div class="ot-info-val">📍 ${r.Ciudad}</div></div>`:''}
+      ${r.CP?`<div class="ot-info-item"><div class="ot-info-lbl">CP</div><div class="ot-info-val">${r.CP}</div></div>`:''}
+      ${r.Calle?`
+      <div class="ot-info-item" style="grid-column:1/-1">
+        <div class="ot-info-lbl">DIRECCIÓN</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="ot-info-val">${r.Calle}${r.Ciudad?', '+r.Ciudad:''}</span>
+          <a href="https://www.google.com/maps/search/?api=1&query=${mapsUrl}" target="_blank" 
+             style="display:inline-flex;align-items:center;gap:4px;background:#4285F4;color:#fff;text-decoration:none;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">
+            📍 Abrir Maps
+          </a>
+        </div>
+        <a href="https://www.google.com/maps/search/?api=1&query=${mapsUrl}" target="_blank" style="display:block;text-decoration:none">
+          <div style="border-radius:12px;overflow:hidden;height:140px;background:#e8f4f2;position:relative;border:2px solid #e2e8f0">
+            <iframe 
+              src="https://maps.google.com/maps?q=${mapsUrl}&z=15&output=embed&hl=es"
+              style="width:100%;height:100%;border:none;pointer-events:none"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+            <div style="position:absolute;inset:0;cursor:pointer;background:transparent"></div>
+          </div>
+        </a>
+      </div>`:''}
+      ${r.Contacto?`<div class="ot-info-item"><div class="ot-info-lbl">CONTACTO</div><div class="ot-info-val"><a href="https://wa.me/${r.Contacto.replace(/\D/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:700"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>${r.Contacto}</a></div></div>`:''}
+      ${r.Horario?`<div class="ot-info-item"><div class="ot-info-lbl">HORARIO</div><div class="ot-info-val">${r.Horario}</div></div>`:''}
+    </div>
+    ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
+    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:''}
+    <div class="ot-actions">
+      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Contactado')">
+        <span class="icon">📞</span>Contactado
+      </button>
+      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','No encontrado')">
+        <span class="icon">❌</span>No encontrado
+      </button>
+      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Retirado')">
+        <span class="icon">✅</span>Retirado
+      </button>
+    </div>
+    ${(()=>{const ag=agenda[String(r.OT)];const dateStr=ag?ag.fecha:'';const today=new Date().toISOString().slice(0,10);const isVencido=dateStr&&dateStr<today;const isHoy=dateStr===today;return `<div style="padding:6px 12px 12px;background:#fafbfc;border-top:1px solid #f1f5f9">
+      <button onclick="openAgendaDetail('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','${(r.Ciudad||'').replace(/'/g,"\'")}','${dateStr}')" style="width:100%;background:${dateStr?(isVencido?'#fee2e2':isHoy?'#d1fae5':'#dbeafe'):'#f8fafc'};color:${dateStr?(isVencido?'#dc2626':isHoy?'#059669':'#1d4ed8'):'#94a3b8'};border:2px dashed ${dateStr?(isVencido?'#fca5a5':isHoy?'#6ee7b7':'#93c5fd'):'#e2e8f0'};border-radius:10px;padding:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        📅 ${dateStr?(isVencido?'⚠️ Vencido: '+dateStr:isHoy?'🔔 Hoy: '+dateStr:'Próx. contacto: '+dateStr):'Agendar próximo contacto'}
+      </button>
+    </div>`})()}
+  </div>`;
+}
+
+function renderAll(){
+  const q = searchQ.toLowerCase();
+  const visible = allOts.filter(r=>{
+    const est = getEstado(r.OT);
+    if(currentFilter==='pendiente' && est!=='') return false;
+    if(currentFilter==='contactado' && est!=='Contactado') return false;
+    if(currentFilter==='no-encontrado' && est!=='No encontrado') return false;
+    if(currentFilter==='retirado' && est!=='Retirado') return false;
+    if(q) return String(r.OT).includes(q)||r.Comercio.toLowerCase().includes(q)||r.Ciudad.toLowerCase().includes(q);
+    return true;
+  });
+
+  // Stats
+  document.getElementById('stat-total').textContent    = allOts.length;
+  document.getElementById('stat-pend').textContent     = allOts.filter(r=>!getEstado(r.OT)).length;
+  document.getElementById('stat-visit').textContent    = allOts.filter(r=>getEstado(r.OT)==='Contactado'||getEstado(r.OT)==='No encontrado').length;
+  document.getElementById('stat-ret').textContent      = allOts.filter(r=>getEstado(r.OT)==='Retirado').length;
+
+  const content = document.getElementById('content');
+  if(!visible.length){
+    content.innerHTML=`<div class="empty"><div class="empty-icon">📦</div><div style="font-weight:700;color:#475569">Sin OTs para mostrar</div></div>`;
+    return;
+  }
+
+  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
+  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
+  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
+  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
+
+  function sec(title,color,items,icon){
+    if(!items.length) return '';
+    return `<div class="section-header" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:10px;margin-bottom:2px">
+      <span style="font-size:18px">${icon}</span>
+      <span style="font-weight:800;font-size:13px;color:${color}">${title}</span>
+      <span style="background:${color}22;color:${color};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length}</span>
+      <div style="flex:1;height:2px;background:${color}33;border-radius:2px"></div>
+    </div>${items.map(r=>renderCard(r)).join('')}`;
+  }
+
+  content.innerHTML=`<div class="ot-list">
+    ${sec('Sin gestión','#f59e0b',sinGestion,'⏳')}
+    ${sec('Contactado','#3b82f6',contactados,'📞')}
+    ${sec('No encontrado','#ef4444',noEncontrados,'❌')}
+    ${sec('Retirado','#10b981',retirados,'✅')}
+  </div>`;
+}
+
+// ─── SAVE ─────────────────────────────────────────────────────
+async function saveEstado(otNum){
+  try{
+    const key=`alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+    localStorage.setItem(key, JSON.stringify(estados));
+  }catch(e){}
+  if(!WEBHOOK_URL||!estados[String(otNum)]) return;
+  const payload={distri:DISTRI_NAME,ot:String(otNum),estado:estados[String(otNum)].estado,obs:estados[String(otNum)].obs||'',fecha:estados[String(otNum)].fecha||''};
+  try{
+    await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'});
+  }catch(e){}
+}
+
+async function loadEstadosFromSheets(){
+  if(!WEBHOOK_URL) return;
+  try{
+    const res=await fetch(WEBHOOK_URL+'?distri='+encodeURIComponent(DISTRI_NAME));
+    const json=await res.json();
+    if(json.ok&&json.data) json.data.forEach(r=>{
+      const ot=String(r.OT||'').trim();
+      if(ot) estados[ot]={estado:r.Estado_Distri||'',obs:r.Observacion||'',fecha:r.Fecha_Distri||''};
+    });
+  }catch(e){}
+}
+
+function showError(msg){
+  document.getElementById('content').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div style="font-weight:700;color:#475569;margin-bottom:8px">${msg}</div><div style="font-size:12px;color:#94a3b8">Contactá a Alleata.</div></div>`;
+}
+
+// ─── LOAD DATA ────────────────────────────────────────────────
+async function loadData(){
+  try{
+    const distriRes=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_DISTRI}`);
+    const distris=parseCSV(await distriRes.text());
+    const myDistri=distris.find(d=>{
+      const full=((d.Nombre||d.nombre||'')+' '+(d.Apellido||d.apellido||'')).trim().toLowerCase();
+      return full===DISTRI_NAME.toLowerCase();
+    });
+    if(!myDistri){showError(`No se encontró "${DISTRI_NAME}"`);return;}
+    const nombre=(myDistri.Nombre||myDistri.nombre||'').trim();
+    const apellido=(myDistri.Apellido||myDistri.apellido||'').trim();
+    const radio=parseInt(myDistri.Radio||myDistri.radio||'50')||50;
+    const cp=(myDistri['Codigo Postal']||myDistri['Código Postal']||myDistri.CP||'').toString().replace(/\D/g,'').slice(0,5);
+    const coords=CP_COORDS[cp];
+    document.getElementById('distri-badge').textContent=nombre+' '+apellido;
+    document.getElementById('header-sub').textContent=(coords?'📍 '+cp:'⚠️ Sin coords')+' · Radio '+radio+' km';
+    document.title='Alleata · '+nombre+' '+apellido;
+    if(!coords){showError('CP '+cp+' sin coordenadas.');return;}
+
+    const otsRes=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID_OTS}`);
+    const otsRaw=parseCSV(await otsRes.text());
+    allOts=otsRaw.filter(r=>{
+      if(['Despachado','Extraviada'].includes(r.Status||r.Estado||'')) return false;
+      const otCp=extractCP(r); if(!otCp) return false;
+      const c=CP_COORDS[otCp]; if(!c) return false;
+      return haversine(coords[0],coords[1],c[0],c[1])<=radio;
+    }).map(r=>{
+      const otCp=extractCP(r);
+      const c=CP_COORDS[otCp];
+      const dist=c?Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10:null;
+      return{OT:r.WorkOrderNumber||r.OT||'',Comercio:r.Nombre_del_comercio__c||r.Comercio||'',Cuenta:r['Account.Name']||r.Cuenta||'',Ciudad:r.Direcci_n_de_env_o__City__s||r.Ciudad||'',Calle:r.Direcci_n_de_env_o__Street__s||r.Calle||'',Contacto:r.Contacto__c||r.Contacto||'',Horario:r.Horario__c||r.Horario||'',Obs:r.Observaciones__c||r.Obs||'',Estado:r.Status||r.Estado||'',CP:otCp,Dist:dist};
+    }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
+
+    await loadEstadosFromSheets();
+    renderAll();
+  }catch(e){showError('Error: '+e.message);}
+}
+
+// ─── EVENTS ───────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input',e=>{searchQ=e.target.value;renderAll();});
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter=btn.dataset.filter;
+    renderAll();
+  });
+});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
+
+// Load from localStorage
+try{
+  const key=`alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
+  const saved=localStorage.getItem(key);
+  if(saved) estados=JSON.parse(saved);
+}catch(e){}
+
+if(!DISTRI_PARAM){showError('Link sin distribuidor.');}
+else{loadData();}
+
+// ─── TABS ─────────────────────────────────────────────────────
+let currentTab = 'ots';
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tab-ots').classList.toggle('active', tab==='ots');
+  document.getElementById('tab-agenda').classList.toggle('active', tab==='agenda');
+  document.getElementById('tab-ruta').classList.toggle('active', tab==='ruta');
+  document.getElementById('content').style.display = tab==='ots'?'block':'none';
+  document.querySelector('.filters').style.display = tab==='ots'?'flex':'none';
+  document.getElementById('agenda-view').style.display = tab==='agenda'?'block':'none';
+  document.getElementById('ruta-view').style.display = tab==='ruta'?'block':'none';
+  if(tab==='agenda') renderCalendar();
+  if(tab==='ruta') renderRuta('todos');
+}
+
+// ─── AGENDA ───────────────────────────────────────────────────
+let agenda = {}; // {[OT]: {fecha:'YYYY-MM-DD'}}
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+let agendaDetailOt = null;
+
+// Load from localStorage
+try{
+  const saved = localStorage.getItem('alleata_agenda_'+DISTRI_NAME.replace(/\s/g,'_'));
+  if(saved) agenda = JSON.parse(saved);
+}catch(e){}
+
+function saveAgendaLocal(){
+  try{ localStorage.setItem('alleata_agenda_'+DISTRI_NAME.replace(/\s/g,'_'), JSON.stringify(agenda)); }catch(e){}
+}
+
+function openAgendaDetail(ot, comercio, ciudad, fechaActual){
+  agendaDetailOt = String(ot);
+  document.getElementById('ad-ot').textContent = 'OT #' + ot;
+  document.getElementById('ad-comercio').textContent = comercio;
+  document.getElementById('ad-ciudad').textContent = ciudad ? '📍 '+ciudad : '';
+  document.getElementById('ad-date').value = fechaActual || '';
+  document.getElementById('agenda-detail').style.display = 'flex';
+}
+
+function closeAgendaDetail(){
+  document.getElementById('agenda-detail').style.display = 'none';
+  agendaDetailOt = null;
+}
+
+function saveAgenda(){
+  if(!agendaDetailOt) return;
+  const fecha = document.getElementById('ad-date').value;
+  if(!fecha){ toast('⚠️ Seleccioná una fecha'); return; }
+  agenda[agendaDetailOt] = {fecha};
+  saveAgendaLocal();
+  closeAgendaDetail();
+  const d = new Date(fecha+'T12:00:00');
+  const label = d.toLocaleDateString('es-AR',{day:'2-digit',month:'long'});
+  toast('📅 OT #'+agendaDetailOt+' agendada para '+label);
+  renderAll();
+  if(currentTab==='agenda') renderCalendar();
+}
+
+function clearAgenda(){
+  if(!agendaDetailOt) return;
+  delete agenda[agendaDetailOt];
+  saveAgendaLocal();
+  closeAgendaDetail();
+  renderAll();
+  if(currentTab==='agenda') renderCalendar();
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+function renderCalendar(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('cal-title').textContent = MONTHS_ES[calMonth] + ' ' + calYear;
+
+  // Day of week headers
+  document.getElementById('cal-dow').innerHTML = DAYS_ES.map(d=>
+    `<div class="cal-dow">${d}</div>`
+  ).join('');
+
+  // Build otMap: fecha -> [{ot, comercio, ciudad}]
+  const otMap = {};
+  Object.entries(agenda).forEach(([ot, val])=>{
+    if(!val.fecha) return;
+    if(!otMap[val.fecha]) otMap[val.fecha] = [];
+    const r = allOts.find(o=>String(o.OT)===String(ot));
+    otMap[val.fecha].push({ot, comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'', tipo: val.tipo||'contacto', calle: r?.Calle||''});
+  });
+
+  // First day of month
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
+  let cells = [];
+
+  // Prev month padding
+  for(let i=firstDay-1; i>=0; i--){
+    cells.push({day: daysInPrev-i, current:false, dateStr:null});
+  }
+  // Current month
+  for(let d=1; d<=daysInMonth; d++){
+    const mm = String(calMonth+1).padStart(2,'0');
+    const dd = String(d).padStart(2,'0');
+    cells.push({day:d, current:true, dateStr:`${calYear}-${mm}-${dd}`});
+  }
+  // Next month padding
+  let next=1;
+  while(cells.length%7!==0) cells.push({day:next++, current:false, dateStr:null});
+
+  document.getElementById('cal-grid').innerHTML = cells.map(cell=>{
+    const isToday = cell.dateStr===today;
+    const events  = cell.dateStr ? (otMap[cell.dateStr]||[]) : [];
+    const hasEvents = events.length>0;
+    const cls = ['cal-day', !cell.current?'other-month':'', isToday?'today':'', hasEvents?'has-events':''].filter(Boolean).join(' ');
+
+    const evHTML = events.slice(0,3).map(e=>{
+      const isVencido = cell.dateStr<today;
+      const isHoy     = cell.dateStr===today;
+      const ecls = isVencido?'vencido':isHoy?'hoy':'';
+      return `<div class="cal-event ${ecls}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="OT #${e.ot} · ${e.comercio}">OT #${e.ot}</div>`;
+    }).join('');
+    const extra = events.length>3 ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px">+${events.length-3} más</div>` : '';
+
+    return `<div class="${cls}">
+      <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
+      ${evHTML}${extra}
+    </div>`;
+  }).join('');
+}
+
+// ─── GUÍA DE RUTA ─────────────────────────────────────────────
+let rutaFiltro = 'todos';
+
+function setRutaFiltro(f){
+  rutaFiltro = f;
+  ['todos','pendiente','hoy','vencido'].forEach(x=>{
+    const el = document.getElementById('rf-'+x);
+    if(el) el.classList.toggle('active', x===f);
+  });
+  renderRuta(f);
+}
+
+function renderRuta(filtro){
+  const today = new Date().toISOString().slice(0,10);
+  let retiros = Object.entries(agenda)
+    .filter(([,v])=>v.tipo==='retiro' && v.fechaRetiro)
+    .map(([ot,v])=>{
+      const r = allOts.find(o=>String(o.OT)===String(ot));
+      return { ot, fecha: v.fechaRetiro,
+        comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'',
+        calle: r?.Calle||'', contacto: r?.Contacto||'', dist: r?.Dist,
+        isHoy: v.fechaRetiro===today, isVencido: v.fechaRetiro<today, isPendiente: v.fechaRetiro>today };
+    })
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(filtro==='hoy')       retiros = retiros.filter(r=>r.isHoy);
+  if(filtro==='vencido')   retiros = retiros.filter(r=>r.isVencido);
+  if(filtro==='pendiente') retiros = retiros.filter(r=>r.isPendiente);
+  const list = document.getElementById('ruta-list');
+  if(!retiros.length){
+    list.innerHTML=`<div style="text-align:center;padding:60px 20px;color:#94a3b8"><div style="font-size:40px;margin-bottom:12px">📦</div><div style="font-weight:700">Sin compromisos de retiro${filtro!=='todos'?' en esta categoría':''}</div><div style="font-size:12px;margin-top:8px">Marcá una OT como "Confirmado retiro" para verla acá</div></div>`;
+    return;
+  }
+  const byDate = {};
+  retiros.forEach(r=>{ if(!byDate[r.fecha]) byDate[r.fecha]=[]; byDate[r.fecha].push(r); });
+  list.innerHTML = Object.entries(byDate).map(([fecha, items])=>{
+    const d = new Date(fecha+'T12:00:00');
+    const label = d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+    const isHoy = fecha===today, isVen = fecha<today;
+    const hColor = isVen?'#ef4444':isHoy?'#059669':'#d97706';
+    const hBg    = isVen?'#fee2e2':isHoy?'#d1fae5':'#fef3c7';
+    const tag    = isVen?'⚠️ VENCIDO':isHoy?'🔔 HOY':'📅 PROGRAMADO';
+    const borderColor = isVen?'#fca5a5':isHoy?'#6ee7b7':'#fcd34d';
+    const cards = items.map(item=>{
+      const mapsUrl = encodeURIComponent((item.calle||item.comercio)+', '+(item.ciudad||'Argentina')+', Argentina');
+      const waUrl   = item.contacto ? 'https://wa.me/'+item.contacto.replace(/\D/g,'') : null;
+      return `<div style="background:#fff;border-radius:14px;border:2px solid ${borderColor};padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--teal-dark)">OT #${item.ot}</div>
+            <div style="font-size:16px;font-weight:900;color:var(--navy);margin-top:2px">${item.comercio}</div>
+            ${item.ciudad?`<div style="font-size:12px;color:#64748b;margin-top:3px">📍 ${item.calle?item.calle+', ':''}${item.ciudad}</div>`:''}
+          </div>
+          ${item.dist!=null?`<div style="background:#f1f5f9;color:#475569;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0">${item.dist<2?'En ciudad':item.dist+' km'}</div>`:''}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <a href="https://www.google.com/maps/search/?api=1&query=${mapsUrl}" target="_blank"
+             style="flex:1;min-width:100px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:#4285F4;color:#fff;text-decoration:none;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700">📍 Ver ruta</a>
+          ${waUrl?`<a href="${waUrl}" target="_blank" style="flex:1;min-width:100px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700">💬 WhatsApp</a>`:''}
+          <button onclick="openAgendaDetail('${item.ot}','${item.comercio.replace(/'/g,"\'")}','${item.ciudad}','${item.fecha}')"
+            style="background:#fff;border:2px solid #e2e8f0;color:#64748b;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="background:${hBg};color:${hColor};border-radius:8px;padding:4px 12px;font-size:11px;font-weight:800">${tag}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--navy);text-transform:capitalize">${label}</div>
+      <div style="background:${hColor}22;color:${hColor};border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700">${items.length} retiro${items.length>1?'s':''}</div>
+    </div>${cards}</div>`;
   }).join('');
 }
 </script>
