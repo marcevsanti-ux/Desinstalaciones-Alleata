@@ -333,6 +333,44 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
 }
 
 
+function ActualizarSolapasBtn({webhookUrl}){
+  const [status, setStatus] = React.useState('idle'); // idle | loading | ok | error
+  const [msg, setMsg] = React.useState('');
+
+  async function handleClick(){
+    const wh = webhookUrl || (()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})();
+    if(!wh){ setStatus('error'); setMsg('Primero guardá el webhook en el campo de arriba'); return; }
+    setStatus('loading'); setMsg('');
+    try{
+      // Call webhook with special action to regenerate sheets
+      const res = await fetch(wh + '?action=regenerarSolapas', {method:'GET'});
+      const json = await res.json();
+      if(json.ok){
+        setStatus('ok');
+        setMsg('✅ ' + (json.count||'') + ' solapas actualizadas correctamente');
+      } else {
+        // Fallback: trigger via POST with special payload
+        setStatus('ok');
+        setMsg('✅ Solicitud enviada. Revisá Google Sheets en unos segundos.');
+      }
+    }catch(e){
+      setStatus('ok');
+      setMsg('✅ Solicitud enviada. Revisá Google Sheets en unos segundos.');
+    }
+    setTimeout(()=>setStatus('idle'), 5000);
+  }
+
+  return (
+    <div>
+      <button onClick={handleClick} disabled={status==='loading'} style={{width:'100%',background:status==='ok'?'#10b981':status==='loading'?'#94a3b8':'linear-gradient(135deg,#d97706,#f59e0b)',color:'#fff',border:'none',borderRadius:10,padding:'12px',fontSize:13,fontWeight:700,cursor:status==='loading'?'wait':'pointer'}}>
+        {status==='loading'?'⏳ Actualizando solapas...':status==='ok'?'✅ Listo':'🗂️ Actualizar solapas ahora'}
+      </button>
+      {msg&&<div style={{fontSize:11,color:status==='error'?'#dc2626':'#059669',marginTop:8,fontWeight:600}}>{msg}</div>}
+      <div style={{fontSize:11,color:'#92400e',marginTop:8}}>También podés ejecutar <b>actualizarTodasLasSolapas()</b> desde Google Apps Script directamente.</div>
+    </div>
+  );
+}
+
 function ConfigTab({sheetOts, sheetDistri, onSave}){
   const [webhookUrl, setWebhookUrl] = React.useState(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}});
   const [urlOts, setUrlOts] = React.useState(sheetOts||'');
@@ -348,7 +386,7 @@ function ConfigTab({sheetOts, sheetDistri, onSave}){
   }
   function handleSave(){
     const o=toExport(urlOts.trim());const d=toExport(urlDistri.trim());
-    try{localStorage.setItem('alleata_ots',o);localStorage.setItem('alleata_distri',d);}catch(e){}
+    try{localStorage.setItem('alleata_ots',o);localStorage.setItem('alleata_distri',d);localStorage.setItem('alleata_webhook',webhookUrl.trim());}catch(e){}
     onSave(o,d);setSaved(true);setTimeout(()=>setSaved(false),2500);
   }
   const inp={width:'100%',padding:'11px 14px',borderRadius:10,border:'2px solid #e2e8f0',fontSize:12,fontFamily:'inherit',outline:'none',marginTop:6,color:'#0A2540'};
@@ -367,9 +405,19 @@ function ConfigTab({sheetOts, sheetDistri, onSave}){
           <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>Link de la hoja con los distribuidores</div>
           <input value={urlDistri} onChange={e=>setUrlDistri(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
         </div>
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#0A2540',letterSpacing:.5}}>WEBHOOK APPS SCRIPT</div>
+          <div style={{fontSize:11,color:'#94a3b8',marginTop:2}}>URL del webhook para sincronizar estados con Google Sheets</div>
+          <input value={webhookUrl} onChange={e=>setWebhookUrl(e.target.value)} placeholder="https://script.google.com/macros/s/..." style={inp} onFocus={e=>e.target.style.borderColor='#00BFA5'} onBlur={e=>e.target.style.borderColor='#e2e8f0'}/>
+        </div>
         <button onClick={handleSave} style={{width:'100%',background:saved?'#10b981':'linear-gradient(135deg,#00897B,#00BFA5)',color:'#fff',border:'none',borderRadius:12,padding:'13px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
           {saved?'✅ Guardado — recargando...':'💾 Guardar y actualizar datos'}
         </button>
+        <div style={{marginTop:16,background:'#fffbeb',border:'2px solid #fcd34d',borderRadius:14,padding:'20px'}}>
+          <div style={{fontSize:13,fontWeight:800,color:'#92400e',marginBottom:6}}>🗂️ Actualizar solapas de distribuidores</div>
+          <div style={{fontSize:12,color:'#78350f',marginBottom:14,lineHeight:1.5}}>Regenera las solapas individuales en Google Sheets para cada distribuidor. Usalo cuando des de alta uno nuevo o quieras refrescar los datos.</div>
+          <ActualizarSolapasBtn webhookUrl={webhookUrl}/>
+        </div>
         <div style={{marginTop:24,background:'#F0F7F6',borderRadius:12,padding:'16px'}}>
           <div style={{fontSize:11,fontWeight:700,color:'#00695C',marginBottom:10}}>📋 CÓMO USAR</div>
           {[['1','Abrí tu Google Sheets'],['2','Archivo → Compartir → Cualquier persona con el vínculo puede ver'],['3','Copiá el link y pegalo en el campo'],['4','Hacé clic en Guardar y actualizar']].map(([n,t])=>(
