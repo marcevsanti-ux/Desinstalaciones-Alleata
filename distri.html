@@ -404,7 +404,7 @@
     <div class="nav-tabs">
       <button class="nav-tab active" id="tab-ots" onclick="switchTab('ots')">📋 OTs</button>
       <button class="nav-tab" id="tab-agenda" onclick="switchTab('agenda')">📅 Agenda</button>
-      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Guía de Ruta</button>
+      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Hoja de Ruta</button>
     </div>
   </div>
   <div class="header-stats">
@@ -416,12 +416,13 @@
 </div>
 
 <div class="filters">
-  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..."/>
   <button class="filter-btn active" data-filter="todos">Todos</button>
   <button class="filter-btn" data-filter="pendiente">Pendiente</button>
-  <button class="filter-btn" data-filter="contactado">Contactado</button>
-  <button class="filter-btn" data-filter="no-encontrado">No encontrado</button>
-  <button class="filter-btn" data-filter="retirado">Retirado</button>
+  <button class="filter-btn" data-filter="contactado">📞 Contactado</button>
+  <button class="filter-btn" data-filter="no-encontrado">❌ No encontrado</button>
+  <button class="filter-btn" data-filter="retirado">✅ Retirado</button>
+  <button class="filter-btn" data-filter="confirmado-retiro" style="border-color:#fcd34d;color:#d97706">📦 Confirmado</button>
+  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..." style="margin-left:auto;min-width:180px"/>
 </div>
 
 <div id="content">
@@ -447,7 +448,7 @@
   <div class="cal-wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-size:20px;font-weight:900;color:var(--navy)">🗺️ Guía de Ruta</div>
+        <div style="font-size:20px;font-weight:900;color:var(--navy)">🗺️ Hoja de Ruta</div>
         <div style="font-size:12px;color:#94a3b8;margin-top:2px">Compromisos de retiro confirmados</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -721,6 +722,7 @@ function renderAll(){
     if(currentFilter==='contactado' && est!=='Contactado') return false;
     if(currentFilter==='no-encontrado' && est!=='No encontrado') return false;
     if(currentFilter==='retirado' && est!=='Retirado') return false;
+    if(currentFilter==='confirmado-retiro' && est!=='Confirmado retiro') return false;
     if(q) return String(r.OT).includes(q)||r.Comercio.toLowerCase().includes(q)||r.Ciudad.toLowerCase().includes(q);
     return true;
   });
@@ -737,10 +739,11 @@ function renderAll(){
     return;
   }
 
-  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
-  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
-  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
-  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
+  const sinGestion     = visible.filter(r=>!getEstado(r.OT));
+  const confirmados    = visible.filter(r=>getEstado(r.OT)==='Confirmado retiro');
+  const contactados    = visible.filter(r=>getEstado(r.OT)==='Contactado');
+  const noEncontrados  = visible.filter(r=>getEstado(r.OT)==='No encontrado');
+  const retirados      = visible.filter(r=>getEstado(r.OT)==='Retirado');
 
   function sec(title,color,items,icon){
     if(!items.length) return '';
@@ -754,6 +757,7 @@ function renderAll(){
 
   content.innerHTML=`<div class="ot-list">
     ${sec('Sin gestión','#f59e0b',sinGestion,'⏳')}
+    ${sec('Confirmado retiro','#d97706',confirmados,'📦')}
     ${sec('Contactado','#3b82f6',contactados,'📞')}
     ${sec('No encontrado','#ef4444',noEncontrados,'❌')}
     ${sec('Retirado','#10b981',retirados,'✅')}
@@ -1471,7 +1475,7 @@ function renderRuta(filtro){
     <div class="nav-tabs">
       <button class="nav-tab active" id="tab-ots" onclick="switchTab('ots')">📋 OTs</button>
       <button class="nav-tab" id="tab-agenda" onclick="switchTab('agenda')">📅 Agenda</button>
-      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Guía de Ruta</button>
+      <button class="nav-tab" id="tab-ruta" onclick="switchTab('ruta')">🗺️ Hoja de Ruta</button>
     </div>
   </div>
   <div class="header-stats">
@@ -1483,12 +1487,13 @@ function renderRuta(filtro){
 </div>
 
 <div class="filters">
-  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..."/>
   <button class="filter-btn active" data-filter="todos">Todos</button>
   <button class="filter-btn" data-filter="pendiente">Pendiente</button>
-  <button class="filter-btn" data-filter="contactado">Contactado</button>
-  <button class="filter-btn" data-filter="no-encontrado">No encontrado</button>
-  <button class="filter-btn" data-filter="retirado">Retirado</button>
+  <button class="filter-btn" data-filter="contactado">📞 Contactado</button>
+  <button class="filter-btn" data-filter="no-encontrado">❌ No encontrado</button>
+  <button class="filter-btn" data-filter="retirado">✅ Retirado</button>
+  <button class="filter-btn" data-filter="confirmado-retiro" style="border-color:#fcd34d;color:#d97706">📦 Confirmado</button>
+  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..." style="margin-left:auto;min-width:180px"/>
 </div>
 
 <div id="content">
@@ -1771,6 +1776,7 @@ function renderAll(){
     if(currentFilter==='contactado' && est!=='Contactado') return false;
     if(currentFilter==='no-encontrado' && est!=='No encontrado') return false;
     if(currentFilter==='retirado' && est!=='Retirado') return false;
+    if(currentFilter==='confirmado-retiro' && est!=='Confirmado retiro') return false;
     if(q) return String(r.OT).includes(q)||r.Comercio.toLowerCase().includes(q)||r.Ciudad.toLowerCase().includes(q);
     return true;
   });
@@ -1787,10 +1793,11 @@ function renderAll(){
     return;
   }
 
-  const sinGestion    = visible.filter(r=>!getEstado(r.OT));
-  const contactados   = visible.filter(r=>getEstado(r.OT)==='Contactado');
-  const noEncontrados = visible.filter(r=>getEstado(r.OT)==='No encontrado');
-  const retirados     = visible.filter(r=>getEstado(r.OT)==='Retirado');
+  const sinGestion     = visible.filter(r=>!getEstado(r.OT));
+  const confirmados    = visible.filter(r=>getEstado(r.OT)==='Confirmado retiro');
+  const contactados    = visible.filter(r=>getEstado(r.OT)==='Contactado');
+  const noEncontrados  = visible.filter(r=>getEstado(r.OT)==='No encontrado');
+  const retirados      = visible.filter(r=>getEstado(r.OT)==='Retirado');
 
   function sec(title,color,items,icon){
     if(!items.length) return '';
@@ -1804,6 +1811,7 @@ function renderAll(){
 
   content.innerHTML=`<div class="ot-list">
     ${sec('Sin gestión','#f59e0b',sinGestion,'⏳')}
+    ${sec('Confirmado retiro','#d97706',confirmados,'📦')}
     ${sec('Contactado','#3b82f6',contactados,'📞')}
     ${sec('No encontrado','#ef4444',noEncontrados,'❌')}
     ${sec('Retirado','#10b981',retirados,'✅')}
@@ -1975,68 +1983,6 @@ const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
 function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
 
-function renderCalendar(){
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('cal-title').textContent = MONTHS_ES[calMonth] + ' ' + calYear;
-
-  // Day of week headers
-  document.getElementById('cal-dow').innerHTML = DAYS_ES.map(d=>
-    `<div class="cal-dow">${d}</div>`
-  ).join('');
-
-  // Build otMap: fecha -> [{ot, comercio, ciudad}]
-  const otMap = {};
-  Object.entries(agenda).forEach(([ot, val])=>{
-    if(!val.fecha) return;
-    if(!otMap[val.fecha]) otMap[val.fecha] = [];
-    const r = allOts.find(o=>String(o.OT)===String(ot));
-    otMap[val.fecha].push({ot, comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'', tipo: val.tipo||'contacto', calle: r?.Calle||''});
-  });
-
-  // First day of month
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
-
-  let cells = [];
-
-  // Prev month padding
-  for(let i=firstDay-1; i>=0; i--){
-    cells.push({day: daysInPrev-i, current:false, dateStr:null});
-  }
-  // Current month
-  for(let d=1; d<=daysInMonth; d++){
-    const mm = String(calMonth+1).padStart(2,'0');
-    const dd = String(d).padStart(2,'0');
-    cells.push({day:d, current:true, dateStr:`${calYear}-${mm}-${dd}`});
-  }
-  // Next month padding
-  let next=1;
-  while(cells.length%7!==0) cells.push({day:next++, current:false, dateStr:null});
-
-  document.getElementById('cal-grid').innerHTML = cells.map(cell=>{
-    const isToday = cell.dateStr===today;
-    const events  = cell.dateStr ? (otMap[cell.dateStr]||[]) : [];
-    const hasEvents = events.length>0;
-    const cls = ['cal-day', !cell.current?'other-month':'', isToday?'today':'', hasEvents?'has-events':''].filter(Boolean).join(' ');
-
-    const evHTML = events.slice(0,3).map(e=>{
-      const isVencido = cell.dateStr<today;
-      const isHoy     = cell.dateStr===today;
-      const ecls = isVencido?'vencido':isHoy?'hoy':'';
-      return `<div class="cal-event ${ecls}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="OT #${e.ot} · ${e.comercio}">OT #${e.ot}</div>`;
-    }).join('');
-    const extra = events.length>3 ? `<div style="font-size:9px;color:#94a3b8;margin-top:2px">+${events.length-3} más</div>` : '';
-
-    return `<div class="${cls}">
-      <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
-      ${evHTML}${extra}
-    </div>`;
-  }).join('');
-}
-
-// ─── GUÍA DE RUTA ─────────────────────────────────────────────
-let rutaFiltro = 'todos';
 
 function setRutaFiltro(f){
   rutaFiltro = f;
