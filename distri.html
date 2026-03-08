@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor</div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.3 · 08/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -439,7 +439,7 @@
       <div class="cal-title" id="cal-title"></div>
       <button class="cal-nav" onclick="calNext()">›</button>
     </div>
-    <div class="cal-grid" id="cal-dow"></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;" id="cal-dow"></div>
     <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
   </div>
 </div>
@@ -711,15 +711,24 @@ function renderCard(r){
     ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
     ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:''}
     <div class="ot-actions">
-      <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Contactado')">
-        <span class="icon">📞</span>Contactado
-      </button>
-      <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','No encontrado')">
-        <span class="icon">❌</span>No encontrado
-      </button>
-      <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Retirado')">
-        <span class="icon">✅</span>Retirado
-      </button>
+      ${!est ? `
+        <button onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','')" style="width:100%;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ✏️ Actualizar estado
+        </button>
+      ` : `
+        <button class="action-btn contactado-btn ${est==='Contactado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Contactado')">
+          <span class="icon">📞</span>Contactado
+        </button>
+        <button class="action-btn noenc-btn ${est==='No encontrado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','No encontrado')">
+          <span class="icon">❌</span>No encontrado
+        </button>
+        <button class="action-btn retirado-btn ${est==='Retirado'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Retirado')">
+          <span class="icon">✅</span>Retirado
+        </button>
+        <button class="action-btn confirmado-btn ${est==='Confirmado retiro'?'active':''}" onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','Confirmado retiro')" style="flex:none;width:auto;background:#fef3c7;color:#d97706;border:2px solid #fcd34d;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer">
+          📦 Confirmado retiro
+        </button>
+      `}
     </div>
     ${(()=>{const ag=agenda[String(r.OT)];const dateStr=ag?ag.fecha:'';const today=new Date().toISOString().slice(0,10);const isVencido=dateStr&&dateStr<today;const isHoy=dateStr===today;return `<div style="padding:6px 12px 12px;background:#fafbfc;border-top:1px solid #f1f5f9">
       <button onclick="openAgendaDetail('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','${(r.Ciudad||'').replace(/'/g,"\'")}','${dateStr}')" style="width:100%;background:${dateStr?(isVencido?'#fee2e2':isHoy?'#d1fae5':'#dbeafe'):'#f8fafc'};color:${dateStr?(isVencido?'#dc2626':isHoy?'#059669':'#1d4ed8'):'#94a3b8'};border:2px dashed ${dateStr?(isVencido?'#fca5a5':isHoy?'#6ee7b7':'#93c5fd'):'#e2e8f0'};border-radius:10px;padding:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
@@ -1114,6 +1123,58 @@ function showRutaDay(dateStr){
     <div style="font-size:15px;font-weight:800;color:var(--navy);text-transform:capitalize">${label}</div>
     <div style="background:${hColor}22;color:${hColor};border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700">${items.length} retiro${items.length>1?'s':''}</div>
   </div>${cards}`;
+}
+
+
+// ─── AGENDA CALENDAR ──────────────────────────────────────────
+function renderCalendar(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('cal-title').textContent = MONTHS_ES[calMonth]+' '+calYear;
+
+  document.getElementById('cal-dow').innerHTML = DAYS_ES.map(d=>
+    `<div class="cal-dow">${d}</div>`).join('');
+
+  // Build otMap: fecha -> [{ot, comercio, ciudad, tipo}]
+  const otMap = {};
+  Object.entries(agenda).forEach(([ot,val])=>{
+    if(!val.fecha) return;
+    if(!otMap[val.fecha]) otMap[val.fecha]=[];
+    const r = allOts.find(o=>String(o.OT)===String(ot));
+    otMap[val.fecha].push({ot, comercio:r?.Comercio||'OT #'+ot, ciudad:r?.Ciudad||'', tipo:val.tipo||'contacto'});
+  });
+
+  const firstDay = new Date(calYear,calMonth,1).getDay();
+  const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev  = new Date(calYear,calMonth,0).getDate();
+  let cells=[];
+  for(let i=firstDay-1;i>=0;i--) cells.push({day:daysInPrev-i,current:false,dateStr:null});
+  for(let d=1;d<=daysInMonth;d++){
+    const mm=String(calMonth+1).padStart(2,'0'),dd=String(d).padStart(2,'0');
+    cells.push({day:d,current:true,dateStr:`${calYear}-${mm}-${dd}`});
+  }
+  let nx=1; while(cells.length%7!==0) cells.push({day:nx++,current:false,dateStr:null});
+
+  document.getElementById('cal-grid').innerHTML = cells.map(cell=>{
+    const isToday=cell.dateStr===today;
+    const events=cell.dateStr?(otMap[cell.dateStr]||[]):[];
+    const hasEvents=events.length>0;
+    const cls=['cal-day',!cell.current?'other-month':'',isToday?'today':'',hasEvents?'has-events':''].filter(Boolean).join(' ');
+
+    const evHTML=events.slice(0,3).map(e=>{
+      const isVencido=cell.dateStr<today, isHoy=cell.dateStr===today;
+      const isRetiro=e.tipo==='retiro';
+      const ecls=isVencido?'vencido':isHoy?'hoy':'';
+      const evStyle=isRetiro&&!isVencido?'background:#fef3c7;color:#d97706;border-left:3px solid #f59e0b;':'';
+      const icon=isRetiro?'📦':'📞';
+      return `<div class="cal-event ${ecls}" style="${evStyle}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="OT #${e.ot}">${icon} #${e.ot}</div>`;
+    }).join('');
+    const extra=events.length>3?`<div style="font-size:9px;color:#94a3b8">+${events.length-3} más</div>`:'';
+
+    return `<div class="${cls}">
+      <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
+      ${evHTML}${extra}
+    </div>`;
+  }).join('');
 }
 
 </script>
