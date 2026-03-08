@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.3 · 08/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.4 · 08/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -415,14 +415,16 @@
   </div>
 </div>
 
-<div class="filters">
-  <button class="filter-btn active" data-filter="todos">Todos</button>
-  <button class="filter-btn" data-filter="pendiente">Pendiente</button>
-  <button class="filter-btn" data-filter="contactado">📞 Contactado</button>
-  <button class="filter-btn" data-filter="no-encontrado">❌ No encontrado</button>
-  <button class="filter-btn" data-filter="retirado">✅ Retirado</button>
-  <button class="filter-btn" data-filter="confirmado-retiro" style="border-color:#fcd34d;color:#d97706">📦 Confirmado</button>
-  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..." style="margin-left:auto;min-width:180px"/>
+<div id="filters-wrap" style="display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:118px;z-index:90">
+  <input class="search-box" id="search" placeholder="🔍 Buscar OT, comercio..." style="width:100%;max-width:420px;margin:0"/>
+  <div class="filters" style="display:flex;flex-wrap:wrap;gap:6px">
+    <button class="filter-btn active" data-filter="todos">Todos</button>
+    <button class="filter-btn" data-filter="pendiente">Pendiente</button>
+    <button class="filter-btn" data-filter="contactado">📞 Contactado</button>
+    <button class="filter-btn" data-filter="no-encontrado">❌ No encontrado</button>
+    <button class="filter-btn" data-filter="retirado">✅ Retirado</button>
+    <button class="filter-btn" data-filter="confirmado-retiro" style="border-color:#fcd34d;color:#d97706">📦 Confirmado</button>
+  </div>
 </div>
 
 <div id="content">
@@ -779,6 +781,47 @@ function renderAll(){
     </div>${items.map(r=>renderCard(r)).join('')}`;
   }
 
+  // TODOS: compact list view
+  if(currentFilter==='todos'){
+    const ESTADO_META = {
+      '':              {label:'Sin gestión', color:'#f59e0b', bg:'#fffbeb', icon:'⏳'},
+      'Contactado':    {label:'Contactado',  color:'#3b82f6', bg:'#eff6ff', icon:'📞'},
+      'No encontrado': {label:'No encontrado',color:'#ef4444',bg:'#fef2f2', icon:'❌'},
+      'Retirado':      {label:'Retirado',    color:'#10b981', bg:'#ecfdf5', icon:'✅'},
+      'Confirmado retiro':{label:'Confirmado retiro',color:'#d97706',bg:'#fffbeb',icon:'📦'},
+    };
+    const rows = visible.map(r=>{
+      const est = getEstado(r.OT)||'';
+      const m = ESTADO_META[est]||ESTADO_META[''];
+      const agd = agenda[r.OT];
+      const fechaRetiro = agd?.fechaRetiro||'';
+      return `<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'flex':'none'" 
+        style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px;border:1.5px solid #e2e8f0;cursor:pointer;transition:border-color .15s"
+        onmouseenter="this.style.borderColor='var(--teal)'" onmouseleave="this.style.borderColor='#e2e8f0'">
+        <div style="width:6px;height:6px;border-radius:50%;background:${m.color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:var(--teal-dark)">OT #${r.OT}</span>
+            <span style="font-size:13px;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">${r.Comercio||'Sin nombre'}</span>
+            ${r.Ciudad?`<span style="font-size:11px;color:#94a3b8">📍 ${r.Ciudad}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${fechaRetiro?`<span style="font-size:10px;background:#fef3c7;color:#d97706;border-radius:6px;padding:2px 7px;font-weight:700">📅 ${fechaRetiro}</span>`:''}
+          <span style="background:${m.bg};color:${m.color};border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap">${m.icon} ${m.label}</span>
+          ${r.Dist!=null?`<span style="font-size:11px;color:#94a3b8;font-weight:600">${r.Dist<2?'En ciudad':r.Dist+' km'}</span>`:''}
+        </div>
+      </div>
+      <div style="display:none;gap:8px;padding:4px 14px 10px;flex-wrap:wrap">
+        <button onclick="event.stopPropagation();openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','')" style="background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">✏️ Actualizar estado</button>
+        ${r.Calle?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((r.Calle||'')+', '+(r.Ciudad||'')+', Argentina')}" target="_blank" style="background:#4285F4;color:#fff;text-decoration:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">📍 Maps</a>`:''}
+        ${r.Contacto?`<a href="https://wa.me/${(r.Contacto||'').replace(/\D/g,'')}" target="_blank" style="background:#25D366;color:#fff;text-decoration:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">💬 WhatsApp</a>`:''}
+      </div>`;
+    }).join('');
+    content.innerHTML=`<div style="padding:12px 14px 80px;display:flex;flex-direction:column;gap:6px">${rows}</div>`;
+    return;
+  }
+
   content.innerHTML=`<div class="ot-list">
     ${sec('Sin gestión','#f59e0b',sinGestion,'⏳')}
     ${sec('Confirmado retiro','#d97706',confirmados,'📦')}
@@ -886,7 +929,7 @@ function switchTab(tab){
   document.getElementById('tab-agenda').classList.toggle('active', tab==='agenda');
   document.getElementById('tab-ruta').classList.toggle('active', tab==='ruta');
   document.getElementById('content').style.display = tab==='ots'?'block':'none';
-  document.querySelector('.filters').style.display = tab==='ots'?'flex':'none';
+  document.getElementById('filters-wrap').style.display = tab==='ots'?'flex':'none';
   document.getElementById('agenda-view').style.display = tab==='agenda'?'block':'none';
   document.getElementById('ruta-view').style.display = tab==='ruta'?'block':'none';
   if(tab==='agenda') renderCalendar();
