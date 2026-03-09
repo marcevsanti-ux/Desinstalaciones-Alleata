@@ -371,6 +371,140 @@ function ActualizarSolapasBtn({webhookUrl}){
   );
 }
 
+
+function IndicadoresTab({webhookUrl}){
+  const [estados, setEstados] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [filtroDistri, setFiltroDistri] = React.useState('Todos');
+  const [filtroEstado, setFiltroEstado] = React.useState('Todos');
+  const [search, setSearch] = React.useState('');
+  const [lastUpdate, setLastUpdate] = React.useState(null);
+
+  function cargar(){
+    if(!webhookUrl){ setError('Configurá el webhook en la pestaña Config'); setLoading(false); return; }
+    setLoading(true); setError('');
+    fetch(webhookUrl)
+      .then(r=>r.json())
+      .then(data=>{
+        const rows = Array.isArray(data) ? data : (data.data||data.estados||data.rows||[]);
+        setEstados(rows);
+        setLastUpdate(new Date().toLocaleTimeString('es-AR'));
+        setLoading(false);
+      })
+      .catch(()=>{
+        setError('No se pudo cargar. Verificá el webhook.');
+        setLoading(false);
+      });
+  }
+
+  React.useEffect(()=>{ cargar(); }, [webhookUrl]);
+
+  const distris = ['Todos',...Array.from(new Set(estados.map(e=>e.Distribuidor||e.distri||e.Distri||'').filter(Boolean))).sort()];
+  const estadoOpts = ['Todos','Contactado','No encontrado','Exitoso','Confirmado retiro'];
+
+  const filtered = estados.filter(e=>{
+    const distri = e.Distribuidor||e.distri||e.Distri||'';
+    const est = e.Estado_Distri||e.estado||e.Estado||'';
+    const ot = String(e.OT||e.ot||e.WorkOrderNumber||'');
+    const comercio = e.Comercio||e.comercio||'';
+    if(filtroDistri!=='Todos' && distri!==filtroDistri) return false;
+    if(filtroEstado!=='Todos' && est!==filtroEstado) return false;
+    if(search){const q=search.toLowerCase(); if(!ot.includes(q)&&!comercio.toLowerCase().includes(q)&&!distri.toLowerCase().includes(q)) return false;}
+    return true;
+  });
+
+  // KPIs
+  const total = estados.length;
+  const porEstado = {};
+  estados.forEach(e=>{const est=e.Estado_Distri||e.estado||e.Estado||'Sin estado'; porEstado[est]=(porEstado[est]||0)+1;});
+  const porDistri = {};
+  estados.forEach(e=>{const d=e.Distribuidor||e.distri||e.Distri||'Sin nombre'; porDistri[d]=(porDistri[d]||0)+1;});
+
+  const COLS = {Contactado:'#3b82f6','No encontrado':'#ef4444',Exitoso:'#10b981','Confirmado retiro':'#d97706'};
+
+  return (
+    <div style={{maxWidth:1380,margin:'0 auto',padding:'24px 20px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:10}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:900,color:'#0A2540'}}>📈 Indicadores — Actividad de Distribuidores</div>
+          <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>{total} acciones registradas{lastUpdate?' · Actualizado: '+lastUpdate:''}</div>
+        </div>
+        <button onClick={cargar} style={{background:'linear-gradient(135deg,#00897B,#00BFA5)',color:'#fff',border:'none',borderRadius:10,padding:'9px 18px',fontSize:12,fontWeight:700,cursor:'pointer'}}>🔄 Actualizar</button>
+      </div>
+
+      {/* KPI Cards */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12,marginBottom:20}}>
+        {Object.entries(porEstado).map(([est,n])=>(
+          <div key={est} style={{background:'#fff',borderRadius:14,padding:'14px 16px',boxShadow:'0 2px 12px rgba(0,0,0,.06)',borderLeft:`4px solid ${COLS[est]||'#94a3b8'}`,cursor:'pointer'}} onClick={()=>setFiltroEstado(filtroEstado===est?'Todos':est)}>
+            <div style={{fontSize:26,fontWeight:900,color:COLS[est]||'#0A2540'}}>{n}</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#64748b',marginTop:3}}>{est}</div>
+          </div>
+        ))}
+        {Object.entries(porDistri).map(([d,n])=>(
+          <div key={d} style={{background:'#fff',borderRadius:14,padding:'14px 16px',boxShadow:'0 2px 12px rgba(0,0,0,.06)',borderLeft:'4px solid #6366f1',cursor:'pointer'}} onClick={()=>setFiltroDistri(filtroDistri===d?'Todos':d)}>
+            <div style={{fontSize:26,fontWeight:900,color:'#6366f1'}}>{n}</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#64748b',marginTop:3}}>🚚 {d.split(' ')[0]}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filtros */}
+      <div style={{background:'#fff',borderRadius:14,padding:'14px 16px',boxShadow:'0 2px 12px rgba(0,0,0,.06)',marginBottom:16,display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Buscar OT, comercio, distribuidor..." style={{flex:1,minWidth:200,padding:'8px 12px',borderRadius:8,border:'1.5px solid #e2e8f0',fontSize:13,outline:'none',fontFamily:'inherit'}}/>
+        <select value={filtroDistri} onChange={e=>setFiltroDistri(e.target.value)} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid #e2e8f0',fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+          {distris.map(d=><option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={filtroEstado} onChange={e=>setFiltroEstado(e.target.value)} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid #e2e8f0',fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+          {estadoOpts.map(e=><option key={e} value={e}>{e}</option>)}
+        </select>
+        {(filtroDistri!=='Todos'||filtroEstado!=='Todos'||search)&&(
+          <button onClick={()=>{setFiltroDistri('Todos');setFiltroEstado('Todos');setSearch('');}} style={{background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:8,padding:'8px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>✕ Limpiar</button>
+        )}
+        <span style={{fontSize:12,color:'#94a3b8',fontWeight:600}}>{filtered.length} registros</span>
+      </div>
+
+      {loading && <div style={{textAlign:'center',padding:60,color:'#94a3b8'}}><div style={{fontSize:32,marginBottom:12}}>⏳</div><div style={{fontWeight:700}}>Cargando datos del webhook...</div></div>}
+      {error && <div style={{background:'#fee2e2',color:'#dc2626',borderRadius:12,padding:'16px 20px',fontWeight:600}}>{error}</div>}
+
+      {!loading && !error && (
+        <div style={{background:'#fff',borderRadius:14,boxShadow:'0 2px 12px rgba(0,0,0,.06)',overflow:'hidden'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead>
+              <tr style={{background:'#0A2540'}}>
+                {['OT','Comercio','Distribuidor','Estado','Observación','Fecha'].map(h=>(
+                  <th key={h} style={{padding:'10px 14px',textAlign:'left',color:'#fff',fontWeight:700,fontSize:11,letterSpacing:.5,whiteSpace:'nowrap'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0 && (
+                <tr><td colSpan={6} style={{textAlign:'center',padding:40,color:'#94a3b8',fontWeight:600}}>Sin registros para los filtros seleccionados</td></tr>
+              )}
+              {filtered.map((e,i)=>{
+                const est = e.Estado_Distri||e.estado||e.Estado||'';
+                const col = COLS[est]||'#94a3b8';
+                return (
+                  <tr key={i} style={{background:i%2===0?'#fafbfc':'#fff',borderBottom:'1px solid #f1f5f9'}}>
+                    <td style={{padding:'9px 14px',fontWeight:800,color:'#00695C',whiteSpace:'nowrap'}}>OT #{e.OT||e.ot||e.WorkOrderNumber||'—'}</td>
+                    <td style={{padding:'9px 14px',fontWeight:700,color:'#0A2540',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.Comercio||e.comercio||'—'}</td>
+                    <td style={{padding:'9px 14px',color:'#475569',whiteSpace:'nowrap'}}>🚚 {e.Distribuidor||e.distri||'—'}</td>
+                    <td style={{padding:'9px 14px'}}>
+                      <span style={{background:col+'20',color:col,border:`1.5px solid ${col}`,borderRadius:99,padding:'3px 10px',fontSize:11,fontWeight:800,whiteSpace:'nowrap'}}>{est||'—'}</span>
+                    </td>
+                    <td style={{padding:'9px 14px',color:'#64748b',maxWidth:220,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.Observacion||e.obs||'—'}</td>
+                    <td style={{padding:'9px 14px',color:'#94a3b8',fontSize:11,whiteSpace:'nowrap'}}>{e.Fecha_Distri||e.fecha||'—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConfigTab({sheetOts, sheetDistri, onSave}){
   const [webhookUrl, setWebhookUrl] = React.useState(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}});
   const [urlOts, setUrlOts] = React.useState(sheetOts||'');
@@ -545,9 +679,10 @@ function DistribuidoresTab({data,sheetDistri}){
       // Apply saved radios from localStorage
       const savedR={};
       try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('alleata_radios_')){savedR[k.replace('alleata_radios_','')]=parseInt(localStorage.getItem(k));}}}catch(e){}
-      setRadios(prev=>({...savedR,...prev}));
       setDistris(mapped);
-      const r={};mapped.forEach(d=>{r[d.id]=d.radio;});setRadios(r);
+      // Apply savedR OVER sheet defaults so localStorage wins
+      const baseR={};mapped.forEach(d=>{baseR[d.id]=d.radio;});
+      setRadios({...baseR,...savedR});
       setLoading(false);
     }).catch(()=>setLoading(false));
   },[sheetDistri]);
@@ -635,7 +770,7 @@ function DistribuidoresTab({data,sheetDistri}){
                   <div style={{fontSize:11,color:'#94a3b8',lineHeight:1.4}}>OTs<br/>a retirar</div>
                   <div style={{flex:1,display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
                     {Object.entries(pe).map(([e,n])=>(<span key={e} style={{background:(ESTADO_C[e]||'#94a3b8')+'22',color:ESTADO_C[e]||'#94a3b8',border:`1px solid ${ESTADO_C[e]||'#94a3b8'}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{e.split(' ')[0]}: {n}</span>))}
-                    {(()=>{const de=distEstados[d.nombre+' '+d.apellido];if(!de)return null;const cols={Contactado:'#3b82f6','No encontrado':'#ef4444',Retirado:'#10b981'};return Object.entries(de).filter(([,n])=>n>0).map(([e,n])=>(<span key={'de'+e} style={{background:cols[e]+'22',color:cols[e],border:`1px solid ${cols[e]}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{'Contactado'===e?'📞':e==='Retirado'?'✅':'❌'} {n}</span>));})()}
+                    {(()=>{const de=distEstados[d.nombre+' '+d.apellido];if(!de)return null;const cols={Contactado:'#3b82f6','No encontrado':'#ef4444',Exitoso:'#10b981'};return Object.entries(de).filter(([,n])=>n>0).map(([e,n])=>(<span key={'de'+e} style={{background:cols[e]+'22',color:cols[e],border:`1px solid ${cols[e]}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>{'Contactado'===e?'📞':e==='Exitoso'?'✅':'❌'} {n}</span>));})()}
                   </div>
                 </div>
 
@@ -833,7 +968,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.1</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.2</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
@@ -850,7 +985,7 @@ function App() {
           </div>
           {/* Tab Nav */}
           <div style={{display:'flex',gap:8,marginTop:14}}>
-            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['config','⚙️ Config']].map(([t,label])=>(
+            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['indicadores','📈 Indicadores'],['config','⚙️ Config']].map(([t,label])=>(
               <button key={t} onClick={()=>setActiveTab(t)} style={{
                 padding:'8px 18px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,
                 background:activeTab===t?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)',
@@ -872,6 +1007,7 @@ function App() {
 
       {activeTab==='distribuidores' && <DistribuidoresTab data={filtered} sheetDistri={sheetDistri}/>}
       {activeTab==='config' && <ConfigTab sheetOts={sheetOts} sheetDistri={sheetDistri} onSave={handleConfigSave}/>}
+      {activeTab==='indicadores' && <IndicadoresTab webhookUrl={(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})()}/>}
       {activeTab==='dashboard' && <div style={{display:'none'}}/>}
       <div style={{maxWidth:1380,margin:'0 auto',padding:'22px 20px',display: activeTab==='dashboard' ? 'grid' : 'none',gridTemplateColumns:'360px 1fr',gap:20,alignItems:'start'}}>
 
