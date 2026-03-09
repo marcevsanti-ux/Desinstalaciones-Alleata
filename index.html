@@ -1141,6 +1141,7 @@ function App() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [sinCpFilter, setSinCpFilter] = useState(null); // 'sinProv' | 'conProv'
+  const [listarModal, setListarModal] = useState(null); // {label, color, rows}
   const [otModal, setOtModal] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const PAGE = 50;
@@ -1280,9 +1281,9 @@ function App() {
     {label:'TOTAL',value:filtered.length,color:'#00BFA5'},
     {label:'PENDIENTES',value:filtered.filter(r=>r.Estado==='Pendiente').length,color:'#f59e0b'},
     {label:'EN PROCESO',value:filtered.filter(r=>r.Estado==='En Proceso').length,color:'#3b82f6'},
+    {label:'DESPACHADAS',value:filtered.filter(r=>r.Estado==='Despachado').length,color:'#8b5cf6'},
     {label:'EXITOSAS',value:filtered.filter(r=>r.Estado==='Exitoso').length,color:'#10b981'},
     {label:'EXTRAVIADAS',value:filtered.filter(r=>r.Estado==='Extraviada').length,color:'#ef4444'},
-    {label:'DESPACHADAS',value:filtered.filter(r=>r.Estado==='Despachado').length,color:'#8b5cf6'},
   ];
 
   // Special styling for BsAs rows
@@ -1299,7 +1300,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.5</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.6</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
@@ -1326,12 +1327,26 @@ function App() {
             ))}
           </div>
           <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-            {kpis.map(k=>(
-              <div key={k.label} style={{background:'rgba(255,255,255,.07)',backdropFilter:'blur(10px)',borderRadius:14,padding:'14px 20px',borderLeft:`3px solid ${k.color}`,flex:1,minWidth:110}}>
-                <div style={{fontSize:28,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
-                <div style={{fontSize:10,color:'rgba(255,255,255,.55)',marginTop:4,fontWeight:700,letterSpacing:.8}}>{k.label}</div>
-              </div>
-            ))}
+            {kpis.map(k=>{
+              const rows = k.label==='TOTAL' ? filtered : filtered.filter(r=>{
+                if(k.label==='PENDIENTES') return r.Estado==='Pendiente';
+                if(k.label==='EN PROCESO') return r.Estado==='En Proceso';
+                if(k.label==='EXITOSAS')   return r.Estado==='Exitoso';
+                if(k.label==='EXTRAVIADAS')return r.Estado==='Extraviada';
+                if(k.label==='DESPACHADAS')return r.Estado==='Despachado';
+                return false;
+              });
+              return(
+                <div key={k.label} style={{background:'rgba(255,255,255,.07)',backdropFilter:'blur(10px)',borderRadius:14,padding:'14px 20px',borderLeft:`3px solid ${k.color}`,flex:1,minWidth:110,position:'relative'}}>
+                  <div style={{fontSize:28,fontWeight:900,color:k.color,lineHeight:1}}>{k.value}</div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,.55)',marginTop:4,fontWeight:700,letterSpacing:.8}}>{k.label}</div>
+                  <button onClick={()=>setListarModal({label:k.label,color:k.color,rows})}
+                    style={{position:'absolute',bottom:8,right:8,background:'rgba(255,255,255,.12)',color:'rgba(255,255,255,.7)',border:'none',borderRadius:6,padding:'3px 8px',fontSize:10,fontWeight:700,cursor:'pointer'}}>
+                    📋 Listar
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1458,42 +1473,44 @@ function App() {
             : sinCp.filter(r=>r.Provincia&&r.Provincia!=='Sin dato');
           const title = sinCpFilter==='sinProv' ? '⚠️ Sin Provincia ni CP' : '📍 Con Provincia pero sin CP';
           return (
-            <div style={{background:'#fffbeb',borderRadius:18,border:'2px solid #fcd34d',overflow:'hidden',marginBottom:16}}>
-              <div style={{padding:'12px 18px',borderBottom:'1px solid #fcd34d',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div>
-                  <span style={{fontWeight:800,color:'#92400e',fontSize:13}}>{title}</span>
-                  <span style={{marginLeft:10,fontSize:11,color:'#b45309'}}>{rows.length} registros</span>
+            <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.7)',backdropFilter:'blur(4px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,padding:16}} onClick={()=>setSinCpFilter(null)}>
+              <div style={{background:'#fffbeb',borderRadius:18,border:'2px solid #fcd34d',overflow:'hidden',width:'100%',maxWidth:900,maxHeight:'85vh',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+                <div style={{padding:'12px 18px',borderBottom:'1px solid #fcd34d',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+                  <div>
+                    <span style={{fontWeight:800,color:'#92400e',fontSize:13}}>{title}</span>
+                    <span style={{marginLeft:10,fontSize:11,color:'#b45309'}}>{rows.length} registros</span>
+                  </div>
+                  <button onClick={()=>setSinCpFilter(null)} style={{background:'#f59e0b',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:11,fontWeight:700,cursor:'pointer'}}>✕ Cerrar</button>
                 </div>
-                <button onClick={()=>setSinCpFilter(null)} style={{background:'#f59e0b',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:11,fontWeight:700,cursor:'pointer'}}>✕ Cerrar</button>
-              </div>
-              <div style={{overflowX:'auto',maxHeight:340,overflowY:'auto'}}>
-                <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-                  <thead style={{position:'sticky',top:0,background:'#fffbeb',zIndex:1}}>
-                    <tr>{['OT','Comercio','Logística','Estado','Zona','Ciudad','Provincia','Dirección','Contacto'].map(h=>(
-                      <th key={h} style={{padding:'8px 12px',textAlign:'left',fontWeight:700,color:'#92400e',borderBottom:'2px solid #fcd34d',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>
-                    ))}</tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r,i)=>{
-                      const ec=ESTADO_C[r.Estado];
-                      return(
-                        <tr key={i} onClick={()=>setOtModal(r)} style={{borderBottom:'1px solid #fef3c7',background:i%2===0?'#fffbeb':'#fff',cursor:'pointer'}}
-                          onMouseEnter={e=>e.currentTarget.style.background='#fef3c7'}
-                          onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'#fffbeb':'#fff'}>
-                          <td style={{padding:'7px 12px',fontWeight:800,color:'#d97706',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
-                          <td style={{padding:'7px 12px',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
-                          <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Logistica}</td>
-                          <td style={{padding:'7px 12px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 7px',fontSize:10,fontWeight:700}}>{r.Estado}</span>:r.Estado}</td>
-                          <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Zona}</td>
-                          <td style={{padding:'7px 12px',color:'#475569'}}>{r.Ciudad}</td>
-                          <td style={{padding:'7px 12px',color:'#92400e',fontWeight:600,fontSize:11}}>{r.Provincia||'—'}</td>
-                          <td style={{padding:'7px 12px',color:'#64748b',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Calle}</td>
-                          <td style={{padding:'7px 12px',color:'#475569',whiteSpace:'nowrap',fontSize:11}}>{r.Contacto}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div style={{overflowX:'auto',overflowY:'auto',flex:1}}>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                    <thead style={{position:'sticky',top:0,background:'#fffbeb',zIndex:1}}>
+                      <tr>{['OT','Comercio','Logística','Estado','Zona','Ciudad','Provincia','Dirección','Contacto'].map(h=>(
+                        <th key={h} style={{padding:'8px 12px',textAlign:'left',fontWeight:700,color:'#92400e',borderBottom:'2px solid #fcd34d',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>
+                      ))}</tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r,i)=>{
+                        const ec=ESTADO_C[r.Estado];
+                        return(
+                          <tr key={i} onClick={()=>setOtModal(r)} style={{borderBottom:'1px solid #fef3c7',background:i%2===0?'#fffbeb':'#fff',cursor:'pointer'}}
+                            onMouseEnter={e=>e.currentTarget.style.background='#fef3c7'}
+                            onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'#fffbeb':'#fff'}>
+                            <td style={{padding:'7px 12px',fontWeight:800,color:'#d97706',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                            <td style={{padding:'7px 12px',maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
+                            <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Logistica}</td>
+                            <td style={{padding:'7px 12px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 7px',fontSize:10,fontWeight:700}}>{r.Estado}</span>:r.Estado}</td>
+                            <td style={{padding:'7px 12px',color:'#64748b',fontSize:11}}>{r.Zona}</td>
+                            <td style={{padding:'7px 12px',color:'#475569'}}>{r.Ciudad}</td>
+                            <td style={{padding:'7px 12px',color:'#92400e',fontWeight:600,fontSize:11}}>{r.Provincia||'—'}</td>
+                            <td style={{padding:'7px 12px',color:'#64748b',maxWidth:170,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Calle}</td>
+                            <td style={{padding:'7px 12px',color:'#475569',whiteSpace:'nowrap',fontSize:11}}>{r.Contacto}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           );
@@ -1580,6 +1597,98 @@ function App() {
         <ProvModal sector={selectedSector} ots={sectorOTs} onClose={()=>setSelectedSector(null)} onOtClick={setOtModal} allData={data} cpCoords={CP_COORDS}/>
       )}
       <OtModal ot={otModal} onClose={()=>setOtModal(null)} webhookUrl={(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})()} />
+
+      {/* LISTAR MODAL */}
+      {listarModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(10,37,64,.75)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:16}} onClick={()=>setListarModal(null)}>
+          <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:1000,maxHeight:'90vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 28px 80px rgba(0,0,0,.4)'}} onClick={e=>e.stopPropagation()}>
+            {/* Header */}
+            <div style={{background:'linear-gradient(135deg,#0A2540,#063D52)',padding:'18px 24px',color:'#fff',flexShrink:0,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{fontSize:18,fontWeight:900,color:listarModal.color}}>{listarModal.label}</div>
+                <div style={{fontSize:12,color:'#99f6e4',marginTop:2}}>{listarModal.rows.length} órdenes de trabajo · {new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>{
+                  const w=window.open('','_blank');
+                  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Alleata · ${listarModal.label}</title>
+                  <style>
+                    *{box-sizing:border-box;margin:0;padding:0}
+                    body{font-family:system-ui,sans-serif;padding:20px;color:#0A2540}
+                    h1{font-size:20px;font-weight:900;color:#0A2540;margin-bottom:4px}
+                    .sub{font-size:12px;color:#64748b;margin-bottom:16px}
+                    table{width:100%;border-collapse:collapse;font-size:11px}
+                    th{background:#0A2540;color:#fff;padding:7px 10px;text-align:left;font-weight:700}
+                    td{padding:6px 10px;border-bottom:1px solid #e2e8f0}
+                    tr:nth-child(even) td{background:#f8fafc}
+                    .badge{display:inline-block;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700}
+                    @media print{body{padding:10px}button{display:none}}
+                  </style></head><body>
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                    <div><h1>Alleata · ${listarModal.label}</h1><div class="sub">${listarModal.rows.length} órdenes · ${new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+                    <button onclick="window.print()" style="background:#0A2540;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🖨️ Imprimir</button>
+                  </div>
+                  <table>
+                    <thead><tr><th>#</th><th>OT</th><th>Comercio</th><th>Logística</th><th>Estado</th><th>Provincia</th><th>Ciudad</th><th>Dirección</th><th>CP</th><th>Contacto</th><th>Horario</th></tr></thead>
+                    <tbody>${listarModal.rows.map((r,i)=>`
+                      <tr>
+                        <td style="color:#94a3b8;font-size:10px">${i+1}</td>
+                        <td style="font-weight:800;color:#00897B">OT #${r.OT}</td>
+                        <td>${r.Comercio||''}</td>
+                        <td style="color:#64748b;font-size:10px">${r.Logistica||''}</td>
+                        <td><span class="badge" style="background:${(ESTADO_C[r.Estado]||'#94a3b8')}22;color:${ESTADO_C[r.Estado]||'#64748b'};border:1px solid ${ESTADO_C[r.Estado]||'#e2e8f0'}">${r.Estado||''}</span></td>
+                        <td>${r.ProvNorm||''}</td>
+                        <td>${r.Ciudad||''}</td>
+                        <td>${r.Calle||''}</td>
+                        <td style="font-family:monospace;font-size:10px">${r.CP||''}</td>
+                        <td>${r.Contacto||''}</td>
+                        <td style="font-size:10px;color:#64748b">${r.Horario||''}</td>
+                      </tr>`).join('')}
+                    </tbody>
+                  </table>
+                  </body></html>`);
+                  w.document.close();
+                }} style={{background:'rgba(255,255,255,.15)',color:'#fff',border:'none',borderRadius:10,padding:'8px 16px',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                  🖨️ Vista impresión
+                </button>
+                <button onClick={()=>setListarModal(null)} style={{background:'rgba(255,255,255,.15)',color:'#fff',border:'none',borderRadius:10,padding:'8px 14px',fontSize:13,fontWeight:700,cursor:'pointer'}}>✕</button>
+              </div>
+            </div>
+            {/* Table */}
+            <div style={{overflowY:'auto',flex:1}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead style={{position:'sticky',top:0,background:'#f8fafc',zIndex:1}}>
+                  <tr>{['#','OT','Comercio','Logística','Estado','Provincia','Ciudad','Dirección','CP','Contacto'].map(h=>(
+                    <th key={h} style={{padding:'9px 12px',textAlign:'left',fontWeight:700,color:'#475569',borderBottom:'2px solid #e2e8f0',fontSize:11,whiteSpace:'nowrap'}}>{h}</th>
+                  ))}</tr>
+                </thead>
+                <tbody>
+                  {listarModal.rows.map((r,i)=>{
+                    const ec=ESTADO_C[r.Estado];
+                    return(
+                      <tr key={i} onClick={()=>{setOtModal(r);setListarModal(null);}}
+                        style={{borderBottom:'1px solid #f1f5f9',cursor:'pointer',background:i%2===0?'#fff':'#f8fafc'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='#f0fdf4'}
+                        onMouseLeave={e=>e.currentTarget.style.background=i%2===0?'#fff':'#f8fafc'}>
+                        <td style={{padding:'8px 12px',color:'#94a3b8',fontSize:11}}>{i+1}</td>
+                        <td style={{padding:'8px 12px',fontWeight:800,color:'#00897B',whiteSpace:'nowrap'}}>OT #{r.OT}</td>
+                        <td style={{padding:'8px 12px',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Comercio}</td>
+                        <td style={{padding:'8px 12px',color:'#64748b',fontSize:11}}>{r.Logistica}</td>
+                        <td style={{padding:'8px 12px'}}>{ec?<span style={{background:ec+'22',color:ec,border:`1px solid ${ec}`,borderRadius:99,padding:'2px 8px',fontSize:10,fontWeight:700}}>{r.Estado}</span>:r.Estado}</td>
+                        <td style={{padding:'8px 12px',color:'#475569'}}>{r.ProvNorm}</td>
+                        <td style={{padding:'8px 12px',color:'#64748b'}}>{r.Ciudad}</td>
+                        <td style={{padding:'8px 12px',color:'#64748b',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.Calle}</td>
+                        <td style={{padding:'8px 12px',fontFamily:'monospace',fontSize:11,color:'#94a3b8'}}>{r.CP}</td>
+                        <td style={{padding:'8px 12px',color:'#475569',whiteSpace:'nowrap',fontSize:11}}>{r.Contacto}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
