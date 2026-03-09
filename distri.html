@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.11 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.12 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -542,6 +542,8 @@
     <div class="modal-fecha-retiro" id="modal-fecha-retiro">
       <label>📅 FECHA DE RETIRO</label>
       <input type="date" id="modal-fecha-input"/>
+      <label style="margin-top:8px">🕐 HORARIO / DÍAS</label>
+      <input type="text" id="modal-horario-input" placeholder="Ej: Lunes y miércoles 10-17hs" style="width:100%;padding:9px 12px;border:2px solid #fcd34d;border-radius:10px;font-size:13px;font-weight:600;color:#0A2540;background:#fffbeb;outline:none"/>
     </div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
@@ -650,6 +652,7 @@ function selectPill(estado){
   if(estado==='Confirmado retiro' && modalOt){
     const ag = agenda[String(modalOt)];
     if(ag && ag.fechaRetiro) document.getElementById('modal-fecha-input').value = ag.fechaRetiro;
+    if(ag && ag.horarioRetiro) document.getElementById('modal-horario-input').value = ag.horarioRetiro;
   }
 }
 
@@ -674,7 +677,8 @@ function saveModal(){
   if(modalEstado === 'Confirmado retiro'){
     const fechaRetiro = document.getElementById('modal-fecha-input').value;
     if(!fechaRetiro){ toast('⚠️ Elegí la fecha de retiro'); return; }
-    agenda[String(modalOt)] = { fecha: fechaRetiro, fechaRetiro, tipo: 'retiro' };
+    const horarioRetiro = document.getElementById('modal-horario-input').value.trim();
+    agenda[String(modalOt)] = { fecha: fechaRetiro, fechaRetiro, horarioRetiro, tipo: 'retiro' };
     saveAgendaLocal();
   }
 
@@ -1039,7 +1043,7 @@ function renderRuta(filtro){
     .filter(([,v])=>v.tipo==='retiro' && v.fechaRetiro)
     .map(([ot,v])=>{
       const r = allOts.find(o=>String(o.OT)===String(ot));
-      return { ot, fecha: v.fechaRetiro,
+      return { ot, fecha: v.fechaRetiro, horarioRetiro: v.horarioRetiro||'',
         comercio: r?.Comercio||'OT #'+ot, ciudad: r?.Ciudad||'',
         calle: r?.Calle||'', contacto: r?.Contacto||'', dist: r?.Dist,
         isHoy: v.fechaRetiro===today, isVencido: v.fechaRetiro<today, isPendiente: v.fechaRetiro>today };
@@ -1221,7 +1225,7 @@ function showRutaDay(dateStr){
     </div>
   </div>`;
 
-  const printData = JSON.stringify(items.map(i=>({ot:i.ot,comercio:i.comercio,ciudad:i.ciudad,calle:i.calle,contacto:i.contacto,dist:i.dist})));
+  const printData = JSON.stringify(items.map(i=>({ot:i.ot,comercio:i.comercio,ciudad:i.ciudad,calle:i.calle,contacto:i.contacto,dist:i.dist,horarioRetiro:i.horarioRetiro||''})));
   panel.innerHTML=`
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1445,6 +1449,7 @@ function printRutaDay(dateStr, label, items){
       <td>${item.calle||'—'}</td>
       <td>${item.ciudad||'—'}</td>
       <td style="white-space:nowrap">${item.dist!=null?(item.dist<2?'En ciudad':item.dist+' km'):'—'}</td>
+      <td style="font-size:11px">${item.horarioRetiro||'—'}</td>
       <td>${(item.contacto||'—')}</td>
       <td class="obs-cell"></td>
     </tr>`).join('');
@@ -1546,6 +1551,7 @@ function printRutaDay(dateStr, label, items){
       <th>Dirección</th>
       <th>Ciudad</th>
       <th>Dist.</th>
+      <th>Horario retiro</th>
       <th>Contacto</th>
       <th>Observación</th>
     </tr>
@@ -1554,7 +1560,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.8</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.12</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
