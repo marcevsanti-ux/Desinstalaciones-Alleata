@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.10 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.11 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -918,7 +918,7 @@ async function loadData(){
       const otCp=extractCP(r);
       const c=CP_COORDS[otCp];
       const dist=c?Math.round(haversine(coords[0],coords[1],c[0],c[1])*10)/10:null;
-      return{OT:r.WorkOrderNumber||r.OT||'',Comercio:r.Nombre_del_comercio__c||r.Comercio||'',Cuenta:r['Account.Name']||r.Cuenta||'',Ciudad:r.Direcci_n_de_env_o__City__s||r.Ciudad||'',Calle:r.DireccionFormula||r.Direcci_n_de_env_o__Street__s||r.Calle||'',Contacto:r.Contacto__c||r.Contacto||'',Horario:r.Horario__c||r.Horario||'',Obs:r.Observaciones__c||r.Obs||'',Estado:r.Status||r.Estado||'',CP:otCp,Dist:dist};
+      return{OT:r.WorkOrderNumber||r.OT||'',Comercio:r.Nombre_del_comercio__c||r.Comercio||'',Cuenta:r['Account.Name']||r.Cuenta||'',Ciudad:r.Direcci_n_de_env_o__City__s||r.Ciudad||'',Calle:r.Direccion_formula__c||r.DireccionFormula||r.Direcci_n_de_env_o__Street__s||r.Calle||'',Contacto:r.Contacto__c||r.Contacto||'',Horario:r.Horario__c||r.Horario||'',Obs:r.Observaciones__c||r.Obs||'',Estado:r.Status||r.Estado||'',CP:otCp,Dist:dist};
     }).sort((a,b)=>(a.Dist||999)-(b.Dist||999));
 
     await loadEstadosFromSheets();
