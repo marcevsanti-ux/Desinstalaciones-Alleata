@@ -256,17 +256,21 @@
     border: 2px solid #fca5a5;
     background: #fff;
     color: #dc2626;
-    border-radius: 99px;
-    padding: 5px 12px;
+    border-radius: 10px;
+    padding: 8px 10px;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
     transition: all .15s;
+    line-height: 1.3;
   }
+  .noenc-chip:hover { background: #fee2e2; }
   .noenc-chip.active {
-    background: #fee2e2;
-    border-color: #ef4444;
+    background: #ef4444;
+    border-color: #dc2626;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(239,68,68,.3);
   }
   .modal-fecha-retiro {
       margin: 0 22px 0;
@@ -413,7 +417,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.15 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.16 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -552,16 +556,16 @@
       <button class="modal-pill retirado" id="pill-retirado" onclick="selectPill('Retirado')">✅ Retirado</button>
       <button class="modal-pill confirmado" id="pill-confirmado" onclick="selectPill('Confirmado retiro')">📦 Confirmado retiro</button>
     </div>
-    <div id="modal-noenc-chips" style="display:none;padding:10px 0 4px">
-      <div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:.5px;margin-bottom:8px">MOTIVO (requerido)</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        <button type="button" class="noenc-chip" data-val="Ya devolvió la terminal" onclick="selectNoEncChip(this)">✅ Ya devolvió la terminal</button>
-        <button type="button" class="noenc-chip" data-val="Dirección incorrecta" onclick="selectNoEncChip(this)">📍 Dirección incorrecta</button>
-        <button type="button" class="noenc-chip" data-val="Local cerrado" onclick="selectNoEncChip(this)">🔒 Local cerrado</button>
-        <button type="button" class="noenc-chip" data-val="No responde llamados" onclick="selectNoEncChip(this)">📵 No responde llamados</button>
-        <button type="button" class="noenc-chip" data-val="__otro__" onclick="selectNoEncChip(this)">✏️ Otro</button>
+    <div id="modal-noenc-chips" style="display:none;background:#fff5f5;border:2px solid #fca5a5;border-radius:14px;padding:12px;margin:4px 0">
+      <div style="font-size:10px;font-weight:800;color:#ef4444;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:5px">❌ MOTIVO — NO SE PUEDE RECUPERAR LA TERMINAL</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <button type="button" class="noenc-chip" data-val="Ya devolvió la terminal" onclick="selectNoEncChip(this)" style="text-align:left">✅ Ya devolvió la terminal</button>
+        <button type="button" class="noenc-chip" data-val="Dirección incorrecta" onclick="selectNoEncChip(this)" style="text-align:left">📍 Dirección incorrecta</button>
+        <button type="button" class="noenc-chip" data-val="Local cerrado" onclick="selectNoEncChip(this)" style="text-align:left">🔒 Local cerrado</button>
+        <button type="button" class="noenc-chip" data-val="No responde llamados" onclick="selectNoEncChip(this)" style="text-align:left">📵 No responde llamados</button>
+        <button type="button" class="noenc-chip" data-val="__otro__" onclick="selectNoEncChip(this)" style="grid-column:1/-1;text-align:left">✏️ Otro motivo...</button>
       </div>
-      <textarea id="modal-noenc-otro" rows="2" placeholder="Describí el motivo..." style="display:none;width:100%;margin-top:8px;padding:9px 12px;border:2px solid #fca5a5;border-radius:10px;font-size:13px;font-family:inherit;resize:none;outline:none;color:#0A2540"></textarea>
+      <textarea id="modal-noenc-otro" rows="2" placeholder="Describí el motivo..." style="display:none;width:100%;margin-top:8px;padding:9px 12px;border:2px solid #fca5a5;border-radius:10px;font-size:13px;font-family:inherit;resize:none;outline:none;color:#0A2540;background:#fff"></textarea>
     </div>
     <div class="modal-obs">
       <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
@@ -797,7 +801,7 @@ function renderCard(r){
       ${r.Horario?`<div class="ot-info-item"><div class="ot-info-lbl">HORARIO</div><div class="ot-info-val">${r.Horario}</div></div>`:''}
     </div>
     ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
-    ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:''}
+    ${(est==='No encontrado'&&obs)?`<div class="ot-obs" style="border-color:#ef4444;background:#fff5f5"><span style="font-size:10px;font-weight:800;color:#ef4444;letter-spacing:.5px;display:block;margin-bottom:3px">MOTIVO</span>❌ ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:(obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:'')}
     <div class="ot-actions">
       <button data-ot="${r.OT}" data-comercio="${(r.Comercio||'').replace(/"/g,'&quot;')}" onclick="openModal(this.dataset.ot,this.dataset.comercio,'')" style="width:100%;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         ✏️ Actualizar estado
@@ -1079,7 +1083,7 @@ function setRutaFiltro(f){
 function renderRuta(filtro){
   const today = new Date().toISOString().slice(0,10);
   let retiros = Object.entries(agenda)
-    .filter(([,v])=>v.tipo==='retiro' && v.fechaRetiro)
+    .filter(([ot,v])=>v.tipo==='retiro' && v.fechaRetiro && getEstado(ot)!=='No encontrado')
     .map(([ot,v])=>{
       const r = allOts.find(o=>String(o.OT)===String(ot));
       return { ot, fecha: v.fechaRetiro, horarioRetiro: v.horarioRetiro||'',
@@ -1152,7 +1156,7 @@ function renderRutaCal(){
 
   const retiroMap = {};
   Object.entries(agenda).forEach(([ot,v])=>{
-    if(v.tipo==='retiro'&&v.fechaRetiro){
+    if(v.tipo==='retiro'&&v.fechaRetiro&&getEstado(ot)!=='No encontrado'){
       if(!retiroMap[v.fechaRetiro]) retiroMap[v.fechaRetiro]=[];
       retiroMap[v.fechaRetiro].push(ot);
     }
@@ -1300,6 +1304,7 @@ function renderCalendar(){
   Object.entries(agenda).forEach(([ot,val])=>{
     const fecha = val.fechaRetiro||val.fecha;
     if(!fecha) return;
+    if(getEstado(ot)==='No encontrado') return; // excluir no encontrados
     if(!otMap[fecha]) otMap[fecha]=[];
     const r = allOts.find(o=>String(o.OT)===String(ot));
     otMap[fecha].push({ot, comercio:r?.Comercio||'OT #'+ot, ciudad:r?.Ciudad||'', tipo:val.tipo||'contacto'});
@@ -1599,7 +1604,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.15</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.16</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
