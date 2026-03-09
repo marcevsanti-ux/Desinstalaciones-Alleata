@@ -417,7 +417,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.16 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.17 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -1204,10 +1204,10 @@ function showRutaDay(dateStr){
   const tag=isVen?'&#9888;&#65039; VENCIDO':isHoy?'&#128276; HOY':'&#128197; PROGRAMADO';
 
   const items=Object.entries(agenda)
-    .filter(([,v])=>v.tipo==='retiro'&&v.fechaRetiro===dateStr)
-    .map(([ot])=>{
+    .filter(([ot,v])=>v.tipo==='retiro'&&v.fechaRetiro===dateStr&&getEstado(ot)!=='No encontrado')
+    .map(([ot,v])=>{
       const r=allOts.find(o=>String(o.OT)===String(ot));
-      return{ot,comercio:r?.Comercio||'OT #'+ot,ciudad:r?.Ciudad||'',calle:r?.Calle||'',contacto:r?.Contacto||'',dist:r?.Dist};
+      return{ot,comercio:r?.Comercio||'OT #'+ot,ciudad:r?.Ciudad||'',calle:r?.Calle||'',contacto:r?.Contacto||'',dist:r?.Dist,horarioRetiro:v.horarioRetiro||''};
     });
 
   const panel=document.getElementById('ruta-detail-panel');
@@ -1604,7 +1604,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.16</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.17</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
