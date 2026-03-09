@@ -1285,8 +1285,9 @@ function App() {
     {label:'TOTAL',value:filtered.length,color:'#00BFA5'},
     {label:'PENDIENTES',value:filtered.filter(r=>r.Estado==='Pendiente').length,color:'#f59e0b'},
     {label:'EN PROCESO',value:filtered.filter(r=>r.Estado==='En Proceso').length,color:'#3b82f6'},
+    {label:'EXITOSAS',value:filtered.filter(r=>r.Estado==='Exitoso').length,color:'#10b981'},
     {label:'EXTRAVIADAS',value:filtered.filter(r=>r.Estado==='Extraviada').length,color:'#ef4444'},
-    {label:'DESPACHADAS',value:filtered.filter(r=>r.Estado==='Despachado').length,color:'#10b981'},
+    {label:'DESPACHADAS',value:filtered.filter(r=>r.Estado==='Despachado').length,color:'#8b5cf6'},
   ];
 
   // Special styling for BsAs rows
