@@ -227,10 +227,13 @@
       width: 100%; max-width: 380px;
       box-shadow: 0 20px 60px rgba(0,0,0,.35);
       overflow: hidden;
+      display: flex; flex-direction: column;
+      max-height: 92vh;
     }
     .modal-header {
       padding: 20px 22px 14px;
       border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .modal-ot { font-size: 12px; font-weight: 700; color: var(--teal-dark); margin-bottom: 4px; }
     .modal-comercio { font-size: 16px; font-weight: 900; color: var(--navy); }
@@ -417,7 +420,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.1.0 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.1.1 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -549,6 +552,8 @@
       <div class="modal-ot" id="modal-ot-num"></div>
       <div class="modal-comercio" id="modal-comercio"></div>
     </div>
+    <!-- SCROLLABLE BODY -->
+    <div style="overflow-y:auto;flex:1;padding:0 0 4px">
     <div class="modal-estado-label">MARCAR COMO</div>
     <div class="modal-estado-pills">
       <button class="modal-pill contactado" id="pill-contactado" onclick="selectPill('Contactado')">📞 Contactado</button>
@@ -580,7 +585,7 @@
           </label>
         </div>
         <div id="foto-preview-wrap" style="display:none;position:relative;border-radius:12px;overflow:hidden;border:2px solid #a78bfa">
-          <img id="foto-preview" style="width:100%;max-height:200px;object-fit:cover;display:block">
+          <img id="foto-preview" style="width:100%;max-height:160px;object-fit:cover;display:block">
           <button onclick="clearFoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
           <div id="foto-status" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;text-align:center"></div>
         </div>
@@ -595,7 +600,9 @@
       <label style="margin-top:8px">🕐 HORARIO / DÍAS</label>
       <input type="text" id="modal-horario-input" placeholder="Ej: Lunes y miércoles 10-17hs" style="width:100%;padding:9px 12px;border:2px solid #fcd34d;border-radius:10px;font-size:13px;font-weight:600;color:#0A2540;background:#fffbeb;outline:none"/>
     </div>
-    <div class="modal-actions">
+    </div><!-- end scrollable body -->
+    <!-- ACTIONS: siempre visible al pie -->
+    <div class="modal-actions" style="flex-shrink:0;border-top:1px solid #e2e8f0">
       <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
       <button class="modal-save" id="modal-save-btn" onclick="saveModal()">Guardar</button>
     </div>
@@ -1670,7 +1677,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.1.0</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.1.1</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
