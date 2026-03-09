@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#F0F7F6}#root{min-height:100vh}</style>
 </head>
 <body>
@@ -606,9 +607,42 @@ function ConfigTab({sheetOts, sheetDistri, onSave}){
   );
 }
 
-function OtModal({ot, onClose}){
+function OtModal({ot, onClose, webhookUrl}){
   const [cpInferido, setCpInferido] = React.useState(null);
   const [cpLoading, setCpLoading] = React.useState(false);
+  const [statusEdit, setStatusEdit] = React.useState(false);
+  const [newStatus, setNewStatus] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [saveMsg, setSaveMsg] = React.useState('');
+
+  const STATUS_OPTS = ['Pendiente','En Proceso','Exitoso','Extraviada','Despachado'];
+  const STATUS_C = {
+    'Pendiente':   {bg:'#f1f5f9',txt:'#64748b'},
+    'En Proceso':  {bg:'#dbeafe',txt:'#1d4ed8'},
+    'Exitoso':     {bg:'#d1fae5',txt:'#065f46'},
+    'Extraviada':  {bg:'#fee2e2',txt:'#991b1b'},
+    'Despachado':  {bg:'#fef3c7',txt:'#92400e'},
+  };
+
+  async function handleSaveStatus(){
+    if(!newStatus || newStatus === ot.Estado) return;
+    setSaving(true); setSaveMsg('');
+    try {
+      await fetch(webhookUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'updateStatus', ot: ot.OT, status: newStatus}),
+        mode:'no-cors'
+      });
+      setSaveMsg('✅ Estado actualizado');
+      setStatusEdit(false);
+      // Update local display
+      ot.Estado = newStatus;
+    } catch(e) {
+      setSaveMsg('❌ Error al guardar');
+    }
+    setSaving(false);
+  }
 
   React.useEffect(()=>{
     if(!ot){setCpInferido(null);return;}
@@ -670,6 +704,35 @@ function OtModal({ot, onClose}){
           </div>
         </div>
         <div style={{overflowY:'auto',flex:1,padding:'20px 24px'}}>
+          {/* STATUS EDITOR */}
+          <div style={{marginBottom:16,background:'#f8fafc',borderRadius:14,padding:'14px 16px',border:'2px solid #e2e8f0'}}>
+            <div style={{fontSize:10,fontWeight:800,color:'#94a3b8',letterSpacing:.6,marginBottom:10}}>STATUS EN SALESFORCE</div>
+            {!statusEdit ? (
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{background:STATUS_C[ot.Estado]?.bg||'#f1f5f9',color:STATUS_C[ot.Estado]?.txt||'#64748b',borderRadius:99,padding:'4px 14px',fontSize:13,fontWeight:700}}>{ot.Estado||'Sin estado'}</span>
+                {webhookUrl&&<button onClick={()=>{setNewStatus(ot.Estado||'');setStatusEdit(true);setSaveMsg('');}} style={{background:'#0A2540',color:'#fff',border:'none',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:700,cursor:'pointer'}}>✏️ Cambiar</button>}
+                {saveMsg&&<span style={{fontSize:12,fontWeight:700,color:saveMsg.startsWith('✅')?'#059669':'#dc2626'}}>{saveMsg}</span>}
+              </div>
+            ) : (
+              <div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:10}}>
+                  {STATUS_OPTS.map(s=>(
+                    <button key={s} onClick={()=>setNewStatus(s)}
+                      style={{padding:'6px 14px',borderRadius:99,border:`2px solid ${newStatus===s?(STATUS_C[s]?.txt||'#0A2540'):'#e2e8f0'}`,background:newStatus===s?(STATUS_C[s]?.bg||'#f1f5f9'):'#fff',color:newStatus===s?(STATUS_C[s]?.txt||'#0A2540'):'#64748b',fontWeight:700,fontSize:12,cursor:'pointer',transition:'all .15s'}}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={handleSaveStatus} disabled={saving||!newStatus||newStatus===ot.Estado}
+                    style={{background:'#0A2540',color:'#fff',border:'none',borderRadius:8,padding:'7px 16px',fontSize:12,fontWeight:700,cursor:'pointer',opacity:saving?0.6:1}}>
+                    {saving?'Guardando…':'Guardar'}
+                  </button>
+                  <button onClick={()=>setStatusEdit(false)} style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:700,cursor:'pointer'}}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             {fields.filter(([k])=>!['OT','Comercio','Cuenta','Estado','Zona','Logística'].includes(k)).map(([k,v])=>(
               <div key={k} style={{background:'#f8fafc',borderRadius:12,padding:'12px 14px'}}>
@@ -877,6 +940,178 @@ function DistribuidoresTab({data,sheetDistri}){
 }
 
 
+// ─── IMPORTAR TAB ─────────────────────────────────────────────
+function ImportarTab({webhookUrl}){
+  const [step, setStep] = React.useState('idle'); // idle | preview | importing | done
+  const [exitosas, setExitosas] = React.useState([]);
+  const [progress, setProgress] = React.useState(0);
+  const [errors, setErrors] = React.useState([]);
+  const [fileName, setFileName] = React.useState('');
+
+  function readXlsx(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, {type:'array'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+          resolve(rows);
+        } catch(err){ reject(err); }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  async function handleFile(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    setFileName(file.name);
+    setStep('reading');
+    try {
+      const rows = await readXlsx(file);
+      // Solo OTs con Status === 'Exitoso'
+      const ots = rows
+        .filter(r => String(r.Status||'').trim() === 'Exitoso')
+        .map(r => ({
+          ot: String(r.WorkOrderNumber||'').trim(),
+          comercio: String(r.Nombre_del_comercio__c||r['Account.Name']||'').trim(),
+        }))
+        .filter(r => r.ot);
+      setExitosas(ots);
+      setStep('preview');
+    } catch(err){
+      alert('Error leyendo el archivo: ' + err.message);
+      setStep('idle');
+    }
+    e.target.value = '';
+  }
+
+  async function handleImport(){
+    if(!webhookUrl){ alert('Configurá el webhook en la pestaña Config'); return; }
+    setStep('importing');
+    setProgress(0);
+    setErrors([]);
+    const errs = [];
+    for(let i = 0; i < exitosas.length; i++){
+      const r = exitosas[i];
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({action:'updateStatus', ot: r.ot, status:'Exitoso'}),
+          mode: 'no-cors'
+        });
+      } catch(err){
+        errs.push(r.ot);
+      }
+      setProgress(i+1);
+      // Small delay to avoid hammering the webhook
+      if(i % 10 === 9) await new Promise(res => setTimeout(res, 300));
+    }
+    setErrors(errs);
+    setStep('done');
+  }
+
+  const pct = exitosas.length > 0 ? Math.round((progress/exitosas.length)*100) : 0;
+
+  return(
+    <div style={{maxWidth:700,margin:'0 auto',padding:'32px 20px'}}>
+      <div style={{background:'#fff',borderRadius:20,boxShadow:'0 4px 24px rgba(10,37,64,.08)',overflow:'hidden'}}>
+        {/* Header */}
+        <div style={{background:'linear-gradient(135deg,#0A2540,#063D52)',padding:'24px 28px',color:'#fff'}}>
+          <div style={{fontSize:22,fontWeight:900,color:'#5eead4'}}>📥 Importar Exitosos desde Salesforce</div>
+          <div style={{fontSize:13,color:'#99f6e4',marginTop:4}}>Solo actualiza OTs que pasaron a Exitoso · No toca ningún otro estado</div>
+        </div>
+
+        <div style={{padding:'28px'}}>
+
+          {/* IDLE / FILE PICKER */}
+          {(step==='idle'||step==='reading') && (
+            <div>
+              <div style={{background:'#f0fdf4',border:'2px dashed #86efac',borderRadius:16,padding:'32px',textAlign:'center',marginBottom:20}}>
+                <div style={{fontSize:40,marginBottom:12}}>📂</div>
+                <div style={{fontSize:15,fontWeight:700,color:'#166534',marginBottom:8}}>Seleccioná el archivo xlsx de Salesforce</div>
+                <div style={{fontSize:12,color:'#4ade80',marginBottom:20}}>Solo se actualizarán las OTs con Status = Exitoso</div>
+                <label style={{display:'inline-block',background:'#16a34a',color:'#fff',borderRadius:10,padding:'10px 24px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  {step==='reading' ? '⏳ Leyendo...' : '📁 Elegir archivo .xlsx'}
+                  <input type="file" accept=".xlsx,.xls" onChange={handleFile} style={{display:'none'}} disabled={step==='reading'}/>
+                </label>
+              </div>
+              <div style={{background:'#fef9c3',border:'1px solid #fde047',borderRadius:12,padding:'14px 16px',fontSize:13,color:'#854d0e'}}>
+                ⚠️ <strong>Importante:</strong> Esta acción actualiza el Status directamente en Hoja13 (Salesforce). Vas a ver un preview antes de confirmar.
+              </div>
+            </div>
+          )}
+
+          {/* PREVIEW */}
+          {step==='preview' && (
+            <div>
+              <div style={{background:'#f0fdf4',border:'2px solid #86efac',borderRadius:14,padding:'18px 20px',marginBottom:20}}>
+                <div style={{fontSize:13,color:'#166534',fontWeight:700,marginBottom:4}}>📄 {fileName}</div>
+                <div style={{fontSize:28,fontWeight:900,color:'#16a34a'}}>{exitosas.length.toLocaleString('es-AR')}</div>
+                <div style={{fontSize:14,color:'#166534',fontWeight:600}}>OTs listas para marcar como Exitoso</div>
+              </div>
+
+              {/* Sample */}
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#94a3b8',letterSpacing:.5,marginBottom:8}}>MUESTRA (primeras 5)</div>
+                <div style={{border:'1px solid #e2e8f0',borderRadius:10,overflow:'hidden'}}>
+                  {exitosas.slice(0,5).map((r,i)=>(
+                    <div key={i} style={{display:'flex',gap:16,padding:'10px 14px',background:i%2===0?'#f8fafc':'#fff',borderBottom:'1px solid #f1f5f9'}}>
+                      <span style={{fontWeight:700,color:'#0A2540',minWidth:60}}>OT #{r.ot}</span>
+                      <span style={{color:'#64748b',fontSize:13}}>{r.comercio||'—'}</span>
+                    </div>
+                  ))}
+                  {exitosas.length>5&&<div style={{padding:'8px 14px',background:'#f8fafc',fontSize:12,color:'#94a3b8',fontStyle:'italic'}}>...y {(exitosas.length-5).toLocaleString('es-AR')} más</div>}
+                </div>
+              </div>
+
+              <div style={{display:'flex',gap:12}}>
+                <button onClick={handleImport} style={{flex:1,background:'#16a34a',color:'#fff',border:'none',borderRadius:12,padding:'14px',fontSize:15,fontWeight:800,cursor:'pointer'}}>
+                  ✅ Confirmar e importar {exitosas.length.toLocaleString('es-AR')} OTs
+                </button>
+                <button onClick={()=>setStep('idle')} style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:12,padding:'14px 20px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* IMPORTING */}
+          {step==='importing' && (
+            <div style={{textAlign:'center',padding:'20px 0'}}>
+              <div style={{fontSize:36,marginBottom:16}}>⚙️</div>
+              <div style={{fontSize:16,fontWeight:700,color:'#0A2540',marginBottom:20}}>Importando... {progress.toLocaleString('es-AR')} / {exitosas.length.toLocaleString('es-AR')}</div>
+              <div style={{background:'#e2e8f0',borderRadius:99,height:12,overflow:'hidden',marginBottom:8}}>
+                <div style={{background:'linear-gradient(90deg,#00BFA5,#0A2540)',height:'100%',width:pct+'%',borderRadius:99,transition:'width .3s'}}/>
+              </div>
+              <div style={{fontSize:13,color:'#94a3b8'}}>{pct}%</div>
+            </div>
+          )}
+
+          {/* DONE */}
+          {step==='done' && (
+            <div>
+              <div style={{background:'#f0fdf4',border:'2px solid #86efac',borderRadius:14,padding:'24px',textAlign:'center',marginBottom:20}}>
+                <div style={{fontSize:40,marginBottom:8}}>✅</div>
+                <div style={{fontSize:20,fontWeight:900,color:'#16a34a'}}>{(exitosas.length-errors.length).toLocaleString('es-AR')} OTs actualizadas</div>
+                {errors.length>0&&<div style={{fontSize:13,color:'#dc2626',marginTop:8}}>⚠️ {errors.length} errores al procesar</div>}
+              </div>
+              <button onClick={()=>{setStep('idle');setExitosas([]);setProgress(0);setErrors([]);setFileName('');}}
+                style={{width:'100%',background:'#0A2540',color:'#fff',border:'none',borderRadius:12,padding:'12px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                Nueva importación
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [sheetOts,setSheetOts]=useState(()=>{try{return localStorage.getItem('alleata_ots')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=1843553678'}});
   const [sheetDistri,setSheetDistri]=useState(()=>{try{return localStorage.getItem('alleata_distri')||'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}catch(e){return 'https://docs.google.com/spreadsheets/d/1vxBwULsCev2TqGohkVSFE0GqHma3Ww69yRPxVjNaECY/export?format=csv&gid=107031751'}});
@@ -1047,7 +1282,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.2</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.3</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
@@ -1064,7 +1299,7 @@ function App() {
           </div>
           {/* Tab Nav */}
           <div style={{display:'flex',gap:8,marginTop:14}}>
-            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['indicadores','📈 Indicadores'],['config','⚙️ Config']].map(([t,label])=>(
+            {[['dashboard','📊 Dashboard'],['distribuidores','🚚 Distribuidores'],['indicadores','📈 Indicadores'],['importar','📥 Importar'],['config','⚙️ Config']].map(([t,label])=>(
               <button key={t} onClick={()=>setActiveTab(t)} style={{
                 padding:'8px 18px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontWeight:700,
                 background:activeTab===t?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)',
@@ -1085,6 +1320,7 @@ function App() {
       </div>
 
       {activeTab==='distribuidores' && <DistribuidoresTab data={filtered} sheetDistri={sheetDistri}/>}
+      {activeTab==='importar' && <ImportarTab webhookUrl={(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})()}/>}
       {activeTab==='config' && <ConfigTab sheetOts={sheetOts} sheetDistri={sheetDistri} onSave={handleConfigSave}/>}
       {activeTab==='indicadores' && <IndicadoresTab webhookUrl={(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})()}/>}
       {activeTab==='dashboard' && <div style={{display:'none'}}/>}
@@ -1326,7 +1562,7 @@ function App() {
       {activeTab==='dashboard' && selectedSector && sectorOTs.length>0 && (
         <ProvModal sector={selectedSector} ots={sectorOTs} onClose={()=>setSelectedSector(null)} onOtClick={setOtModal} allData={data} cpCoords={CP_COORDS}/>
       )}
-      <OtModal ot={otModal} onClose={()=>setOtModal(null)}/>
+      <OtModal ot={otModal} onClose={()=>setOtModal(null)} webhookUrl={(()=>{try{return localStorage.getItem('alleata_webhook')||''}catch(e){return ''}})()} />
     </div>
   );
 }
