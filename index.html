@@ -47,7 +47,7 @@ const LOCALIDAD_CP = {"guernica":"1748", "general rodriguez":"1748", "presidente
 const AMBA_NORTE = new Set([,"beccar","belgrano","bella vista","boulogne","campana","coghlan","don torcuato","el talar","el talar zona norte","escobar","exaltacion de la cruz","florida","florida oeste","general pacheco","general rodriguez","grand bourg","hurlingham","ituzaingo","jose c paz","los polvorines","lujan","malvinas argentinas","martinez","moreno","munro","munro zona norte","nordelta","olivos","pilar","pilar bs as","pilar centro","rincon de milberg","san fernando","san isidro","san martin","san miguel","san miguel centro","tigre","tigre centro","vicente lopez","villa adelina","villa lynch","virreyes","villa ballester","jose leon suarez","josé leon suárez","muñiz","muniz","presidente derqui","open door","villa maipú","villa maipu","tortuguitas","del viso","maquinista savio","ingeniero maschwitz","ingeniero pablo noether","garín","garin","jose c. paz","josé c. paz","pacheco","villa celina bs as","tigre bs as","trujui","cuartel v","cuartel 5","villa de mayo","ing. adolfo sourdeaux","adolfo sourdeaux","jose c paz centro","san miguel de tucuman","los polvorines centro","bella vista bs as","villa rosa"]);
 const AMBA_SUR = new Set(["almirante brown","avellaneda","avellaneda centro","banfield","barracas","berazategui","berazategui centro","bernal","bernal oeste","boedo","canning","canuelas","cañuelas","claypole","constitucion","constitución","dock sud","el jaguel","esteban echeverria","ezeiza","ezpeleta","florencio varela","glew","guernica","ianus oeste","la boca","lanus","lanus este","lanus oeste","lomas","lomas de zamora","lomas de zamora centro","longchamps","monte grande","nueva pompeya","parque patricios","piñeyro","pompeya","presidente peron","quilmes","quilmes centro","quilmes oeste","ranelagh","remedios de escalada","saenz peña","san cristobal","san jose","san vicente","sarandi","souza","temperley","tristan suarez","tristán suárez","varela","villa dominico","villa elisa","villa lugano","villa riachuelo","villa soldati","villa zagala","wilde","monte grande sur","jose marmol","jose maría marmol","burzaco","adrogué","adrogue","ing. budge","budge","rafael calzada","turdera","ingeniero budge","gerli","don bosco","llavallol","carlos spegazzini","alejandro korn","bosques","villa brown","zeballos","pereyra","villa garibaldi","el jaguel","el jagüel","canning","ezeiza canning","tristán suárez","tristan suarez","monte grande","carlos spegazzini","la plata","city bell","el peligro","los hornos","villa fiorito","villa fiorito lomas","olmos","etcheverry","arturo segui","abasto","poblet","joaquin gorina","manuel b. gonnet","gonnet","villa castells","ringuelet","tolosa","ensenada","berisso","el pato bs as","el pato","valentin alsina","valentín alsina","domselaar","lomas del mirador","9 de abril","ezeiza centro"," monte grande","ing. budge centro","villa centenario","ezeiza – canning","ezeiza-canning"]);
 const AMBA_OESTE = new Set(["aldo bonzi","almagro","caballito","castelar","ciudad evita","el palomar","flores","floresta","general las heras","gonzalez catan","gonzalez catán","gregorio de laferrere","haedo","isidro casanova","ituzaingo centro","la matanza","laferrere","liniers","maipu","maipú","marcos paz","merlo","monte castro","moron","moron centro","once","palermo","rafael castillo","ramos mejia","san justo","tablada","tapiales","versalles","villa lobos","villa luro","villa luzuriaga","villa madero","villa tesei","francisco alvarez","francisco álvarez","general rodriguez","gral rodriguez","paso del rey","parque leloir","villa rodriguez","mariano acosta","pontevedra","san antonio de padua","padua","libertad","loma hermosa","pablo podestá","pablo podesta","jose ingenieros","josé ingenieros","ciudadela","llavallol","villa del parque","villa mazzini","tres de febrero","villa celina","lomas del mirador","aldo bonzi centro"]);
-const CABA_LOCS  = new Set(["agronomia","almagro","balvanera caba","barracas","belgrano","boedo","buenos aires","caba","caballito","capital federal","chacarita","ciudad autonoma de buenos aires","ciudad autónoma de buenos aires","ciudad de buenos aires","coghlan","colegiales","constitucion","devoto","flores","flores caba","floresta","la boca","liniers","mataderos","mataderos caba","monserrat","monte castro","nueva pompeya","nunez","palermo","palermo caba","parque avellaneda","parque chas","parque patricios","paternal","pompeya","puerto madero","recoleta","retiro","saavedra","san cristobal","san nicolas caba","san telmo","versalles","villa crespo","villa del parque","villa del parque caba","villa general mitre","villa lugano","villa luro","villa pueyrredon","villa real","villa riachuelo","villa santa rita","villa soldati","villa urquiza","microcentro","micro centro","villa ortuzar","villa ortúzar","balvanera","agronomia caba","agronomía"]);
+const CABA_LOCS  = new Set(["agronomia","almagro","balvanera caba","barracas","belgrano","boedo","buenos aires","caba","caballito","capital federal","chacarita","ciudad autonoma de buenos aires","ciudad autónoma de buenos aires","ciudad de buenos aires","coghlan","colegiales","constitucion","devoto","flores","flores caba","floresta","la boca","liniers","mataderos","mataderos caba","monserrat","monte castro","nueva pompeya","nunez","palermo","palermo caba","parque avellaneda","parque chas","parque patricios","paternal","pompeya","puerto madero","recoleta","retiro","saavedra","san cristobal","san nicolas caba","san telmo","versalles","villa crespo","villa del parque","villa del parque caba","villa general mitre","villa lugano","villa luro","villa pueyrredon","villa real","villa riachuelo","villa santa rita","villa soldati","villa urquiza","microcentro","micro centro","villa ortuzar","villa ortúzar","balvanera","agronomia caba","agronomía","san nicolas","san nicolás","san telmo caba"]);
 
 function normAcc(s){return(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 function getAmbaSubzona(ciudad){
@@ -205,21 +205,27 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
       if(otsConDistri.has(r.OT)) return;
       // Clean city name: strip "(Zona Sur)" type suffixes from sheet data
       // Use same city priority: envío field first, then account field
-      const rawCiudad=((r.Ciudad||'').replace(/\s*\(zona\s+[\w\s]+?\)/gi,'').replace(/\s*\((?:caba|sur|norte|oeste|este|centro|fuera\s+de\s+gba)\)/gi,'').trim());
+      const rawCiudad=((r.Ciudad||'').replace(/–/g,'-').replace(/\s*\(zona\s+[\w\s]+?\)/gi,'').replace(/\s*\((?:caba|sur|norte|oeste|este|centro|fuera\s+de\s+gba)\)/gi,'').trim());
+      // Normalize key: lowercase + remove accents → groups "Río Grande", "rio grande", "RIO GRANDE" together
+      const normKey = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+      // Display name: Title Case from the first occurrence seen
       let c = rawCiudad||'Sin ciudad';
+      const cKey = normKey(c);  // use normalized key for grouping
       if(isAmba){
         const sub = getAmbaSubzona(c);
         if(sub) c = sub;
         else if(r.Zona==='CABA'||c.toLowerCase().includes('caba')||c.toLowerCase().includes('ciudad autonoma')) c='CABA';
         // Unknown AMBA city: keep the cleaned name instead of dumping to 'Sin ciudad'
       }
-      if(!m[c])m[c]={total:0,Pendiente:0,'En Proceso':0,Extraviada:0,Despachado:0,ots:[]};
-      m[c].total++;
-      if(m[c][r.Estado]!==undefined)m[c][r.Estado]++;
-      m[c].ots.push(r);
+      // Use normalized key for grouping; store display name from first occurrence
+      const groupKey = isAmba ? c : normKey(c);
+      if(!m[groupKey]){m[groupKey]={total:0,Pendiente:0,'En Proceso':0,Extraviada:0,Despachado:0,ots:[],displayName:c};}
+      m[groupKey].total++;
+      if(m[groupKey][r.Estado]!==undefined)m[groupKey][r.Estado]++;
+      m[groupKey].ots.push(r);
     });
     if(isAmba){
-      return Object.entries(m).sort((a,b)=>{
+      return Object.entries(m).map(([k,v])=>[v.displayName||k,v]).sort((a,b)=>{
         const ia=ambaOrder.indexOf(a[0]),ib=ambaOrder.indexOf(b[0]);
         if(ia!==-1&&ib!==-1)return ia-ib;
         if(ia!==-1)return -1;
@@ -227,7 +233,7 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
         return b[1].total-a[1].total;
       });
     }
-    return Object.entries(m).sort((a,b)=>b[1].total-a[1].total);
+    return Object.entries(m).map(([k,v])=>[v.displayName||k,v]).sort((a,b)=>b[1].total-a[1].total);
   },[ots,isAmba,otsConDistri]);
 
   const otsCity = ciudadSel
@@ -942,15 +948,15 @@ function App() {
                 if(lon>=-68.0&&lon<=-65.5&&lat<=-38.5&&lat>=-40.5) return 'Río Negro';
                 // Neuquén city: lon < -68, lat < -36.5 (excluye Cuyo sur)
                 if(lon<-68.0&&lat<-36.5&&lat>-41.5) return 'Neuquén';
-                // Cuyo: ANTES que Neuquén para evitar falsos positivos
-                // San Juan: lat > -29, lon < -65
-                if(lon<-65&&lat>-32&&lat<-27) return 'San Juan';
-                // Mendoza: lat -32 a -37.5, lon < -65
-                if(lon<-65&&lat>=-37.5&&lat<-32) return 'Mendoza';
+                // San Juan: lon < -67.5 (capital a -68.54), lat -27 a -32.5
+                if(lon<-67.5&&lat>-32.5&&lat<-27) return 'San Juan';
+                // Mendoza: lon < -66, lat -32 a -37.5
+                if(lon<-66&&lat>=-37.5&&lat<-32) return 'Mendoza';
+                // Mendoza sur (Malargüe, Las Leñas): lon < -68, lat -35 a -37.5
+                if(lon<-68&&lat>=-37.5&&lat<-35) return 'Mendoza';
                 // Neuquén provincia: lon < -65, lat -36.5 a -41.5
                 if(lon<-65&&lat>-41.5&&lat<-36.5) return 'Neuquén';
-                // Mendoza/San Juan: lon < -66, lat > -35
-                if(lon<-65&&lat>-35&&lat<-30) return 'Mendoza';
+                // La Rioja, Catamarca, NOA: lon -64 a -68, lat > -32 → usar normProv
               }
               // Fallback: range-based for CPs not in coords dict
               if(cpN>=9300) return 'Santa Cruz';
@@ -1041,7 +1047,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.0</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.2</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
