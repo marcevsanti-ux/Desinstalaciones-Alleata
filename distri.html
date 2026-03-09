@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.13 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.14 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -744,7 +744,7 @@ function renderCard(r){
     ${r.Obs?`<div class="ot-obs">💬 ${r.Obs}</div>`:''}
     ${obs?`<div class="ot-obs" style="border-color:#3b82f6">📝 ${obs}${fecha?' · <span style="font-size:10px;color:#94a3b8">'+fecha+'</span>':''}</div>`:''}
     <div class="ot-actions">
-      <button onclick="openModal('${r.OT}','${(r.Comercio||'').replace(/'/g,\"\\'\")}','')" style="width:100%;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <button data-ot="${r.OT}" data-comercio="${(r.Comercio||'').replace(/"/g,'&quot;')}" onclick="openModal(this.dataset.ot,this.dataset.comercio,'')" style="width:100%;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         ✏️ Actualizar estado
       </button>
     </div>
@@ -1545,7 +1545,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.13</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.14</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
