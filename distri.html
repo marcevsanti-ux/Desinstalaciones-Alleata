@@ -417,7 +417,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.17 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.18 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -1507,7 +1507,7 @@ function printRutaDay(dateStr, label, items){
   body{font-family:'Arial',sans-serif;background:#fff;color:#0A2540;font-size:12px;padding:28px 32px}
   
   /* HEADER */
-  .page-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:20px;border-bottom:4px solid #00BFA5}
+  .page-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:0;border-bottom:none}.header-line{height:4px;background:linear-gradient(90deg,#00BFA5,#0A5C73);border-radius:2px;margin-bottom:20px}
   .logo-block{}
   .logo-text{font-size:28px;font-weight:900;letter-spacing:-1px;color:#0A2540;line-height:1}
   .logo-text em{color:#00BFA5;font-style:normal}
@@ -1559,30 +1559,37 @@ function printRutaDay(dateStr, label, items){
 
 <div class="page-header">
   <div class="logo-block">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="40" height="40" rx="10" fill="#0A2540"/>
-        <circle cx="20" cy="20" r="11" stroke="#00BFA5" stroke-width="3" fill="none"/>
-        <circle cx="20" cy="20" r="5" fill="#00BFA5"/>
-      </svg>
-      <div>
-        <div class="logo-text">alle<em>ata</em></div>
-        <div class="logo-sub">Portal Distribuidores</div>
-      </div>
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:8px">
+      <svg width="140" height="44" viewBox="0 0 140 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon: circle with 'a' -->
+  <circle cx="22" cy="22" r="22" fill="url(#grad)"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0A5C73"/>
+      <stop offset="100%" stop-color="#00BFA5"/>
+    </linearGradient>
+  </defs>
+  <!-- 'a' letterform -->
+  <text x="22" y="29" font-family="Arial,sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">a</text>
+  <!-- Wordmark -->
+  <text x="54" y="19" font-family="Arial,sans-serif" font-size="13" font-weight="300" fill="#0A2540" letter-spacing="0.5">alle</text>
+  <text x="80" y="19" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#0A2540" font-style="italic">ata</text>
+</svg>
     </div>
     <div class="doc-title">Desinstalaciones</div>
     <div class="doc-sub">Hoja de Ruta — Listado de visitas</div>
+    <div style="margin-top:6px;font-size:11px;color:#0A2540;font-weight:700">Distribuidor: <span style="color:#00695C">${DISTRI_NAME}</span></div>
   </div>
   <div class="meta-block">
     <div class="meta-tag">&#128197; Hoja de Ruta</div>
     <div class="meta-date">${dateLabel}</div>
     <div class="meta-info">
-      Distribuidor: <b>${DISTRI_NAME}</b><br>
       Total de visitas: <b>${items.length}</b><br>
       Generado: ${now}
     </div>
   </div>
 </div>
+<div class="header-line"></div>
 
 <div class="section-title">Listado de órdenes de trabajo</div>
 
@@ -1604,7 +1611,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.17</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.18</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
