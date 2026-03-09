@@ -252,7 +252,23 @@
     .modal-pill.confirmado  { background: #fef3c7; color: #d97706; border: 2px solid #fcd34d; }
     .modal-pill.confirmado.active { border-color: #d97706; }
     /* Date picker row in modal */
-    .modal-fecha-retiro {
+    .noenc-chip {
+    border: 2px solid #fca5a5;
+    background: #fff;
+    color: #dc2626;
+    border-radius: 99px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .noenc-chip.active {
+    background: #fee2e2;
+    border-color: #ef4444;
+  }
+  .modal-fecha-retiro {
       margin: 0 22px 0;
       display: none;
       flex-direction: column;
@@ -397,7 +413,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.14 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.15 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -536,6 +552,17 @@
       <button class="modal-pill retirado" id="pill-retirado" onclick="selectPill('Retirado')">✅ Retirado</button>
       <button class="modal-pill confirmado" id="pill-confirmado" onclick="selectPill('Confirmado retiro')">📦 Confirmado retiro</button>
     </div>
+    <div id="modal-noenc-chips" style="display:none;padding:10px 0 4px">
+      <div style="font-size:10px;font-weight:700;color:#ef4444;letter-spacing:.5px;margin-bottom:8px">MOTIVO (requerido)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button type="button" class="noenc-chip" data-val="Ya devolvió la terminal" onclick="selectNoEncChip(this)">✅ Ya devolvió la terminal</button>
+        <button type="button" class="noenc-chip" data-val="Dirección incorrecta" onclick="selectNoEncChip(this)">📍 Dirección incorrecta</button>
+        <button type="button" class="noenc-chip" data-val="Local cerrado" onclick="selectNoEncChip(this)">🔒 Local cerrado</button>
+        <button type="button" class="noenc-chip" data-val="No responde llamados" onclick="selectNoEncChip(this)">📵 No responde llamados</button>
+        <button type="button" class="noenc-chip" data-val="__otro__" onclick="selectNoEncChip(this)">✏️ Otro</button>
+      </div>
+      <textarea id="modal-noenc-otro" rows="2" placeholder="Describí el motivo..." style="display:none;width:100%;margin-top:8px;padding:9px 12px;border:2px solid #fca5a5;border-radius:10px;font-size:13px;font-family:inherit;resize:none;outline:none;color:#0A2540"></textarea>
+    </div>
     <div class="modal-obs">
       <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
     </div>
@@ -648,12 +675,29 @@ function selectPill(estado){
   // Show date picker only for Confirmado retiro
   const fechaRow = document.getElementById('modal-fecha-retiro');
   if(fechaRow) fechaRow.classList.toggle('show', estado==='Confirmado retiro');
+  // Show no-encontrado chips
+  const noEncChips = document.getElementById('modal-noenc-chips');
+  if(noEncChips) noEncChips.style.display = estado==='No encontrado' ? 'block' : 'none';
+  // Reset chips and obs when switching away
+  if(estado!=='No encontrado'){
+    document.querySelectorAll('.noenc-chip').forEach(c=>c.classList.remove('active'));
+    const otro = document.getElementById('modal-noenc-otro');
+    if(otro){ otro.style.display='none'; otro.value=''; }
+  }
   // Pre-fill with existing agenda date if any
   if(estado==='Confirmado retiro' && modalOt){
     const ag = agenda[String(modalOt)];
     if(ag && ag.fechaRetiro) document.getElementById('modal-fecha-input').value = ag.fechaRetiro;
     if(ag && ag.horarioRetiro) document.getElementById('modal-horario-input').value = ag.horarioRetiro;
   }
+}
+
+function selectNoEncChip(btn){
+  document.querySelectorAll('.noenc-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  const otro = document.getElementById('modal-noenc-otro');
+  otro.style.display = btn.dataset.val==='__otro__' ? 'block' : 'none';
+  if(btn.dataset.val!=='__otro__') otro.value='';
 }
 
 function closeModal(){
@@ -674,6 +718,17 @@ function saveModal(){
   });
 
   // If Confirmado retiro, require date and save to agenda
+  // If No encontrado, require chip selection and use as obs
+  if(modalEstado === 'No encontrado'){
+    const activeChip = document.querySelector('.noenc-chip.active');
+    if(!activeChip){ toast('⚠️ Seleccioná el motivo'); return; }
+    const chipVal = activeChip.dataset.val === '__otro__'
+      ? document.getElementById('modal-noenc-otro').value.trim()
+      : activeChip.dataset.val;
+    if(!chipVal){ toast('⚠️ Describí el motivo'); return; }
+    document.getElementById('modal-obs').value = chipVal;
+  }
+
   if(modalEstado === 'Confirmado retiro'){
     const fechaRetiro = document.getElementById('modal-fecha-input').value;
     if(!fechaRetiro){ toast('⚠️ Elegí la fecha de retiro'); return; }
@@ -747,12 +802,11 @@ function renderCard(r){
       <button data-ot="${r.OT}" data-comercio="${(r.Comercio||'').replace(/"/g,'&quot;')}" onclick="openModal(this.dataset.ot,this.dataset.comercio,'')" style="width:100%;background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         ✏️ Actualizar estado
       </button>
-    </div>
-    ${(()=>{const ag=agenda[String(r.OT)];const dateStr=ag?ag.fecha:'';const today=new Date().toISOString().slice(0,10);const isVencido=dateStr&&dateStr<today;const isHoy=dateStr===today;return `<div style="padding:6px 12px 12px;background:#fafbfc;border-top:1px solid #f1f5f9">
+      ${(()=>{const ag=agenda[String(r.OT)];const dateStr=ag?ag.fecha:'';const today=new Date().toISOString().slice(0,10);const isVencido=dateStr&&dateStr<today;const isHoy=dateStr===today;return `
       <button onclick="openAgendaDetail('${r.OT}','${(r.Comercio||'').replace(/'/g,"\'")}','${(r.Ciudad||'').replace(/'/g,"\'")}','${dateStr}')" style="width:100%;background:${dateStr?(isVencido?'#fee2e2':isHoy?'#d1fae5':'#dbeafe'):'#f8fafc'};color:${dateStr?(isVencido?'#dc2626':isHoy?'#059669':'#1d4ed8'):'#94a3b8'};border:2px dashed ${dateStr?(isVencido?'#fca5a5':isHoy?'#6ee7b7':'#93c5fd'):'#e2e8f0'};border-radius:10px;padding:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-        📅 ${dateStr?(isVencido?'⚠️ Vencido: '+dateStr:isHoy?'🔔 Hoy: '+dateStr:'Próx. contacto: '+dateStr):'Agendar próximo contacto'}
-      </button>
-    </div>`})()}
+        📅 ${dateStr?(isVencido?'⚠️ Vencido: '+dateStr:isHoy?'🔔 Hoy: '+dateStr:'Próx. contacto: '+dateStr):'📅 Agendar llamado'}
+      </button>`;})()}
+    </div>
   </div>`;
 }
 
@@ -1545,7 +1599,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.14</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.15</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
