@@ -50,7 +50,8 @@ const AMBA_OESTE = new Set(["aldo bonzi","almagro","caballito","castelar","ciuda
 const CABA_LOCS  = new Set(["agronomia","almagro","balvanera caba","barracas","belgrano","boedo","buenos aires","caba","caballito","capital federal","chacarita","ciudad autonoma de buenos aires","ciudad autónoma de buenos aires","ciudad de buenos aires","coghlan","colegiales","constitucion","devoto","flores","flores caba","floresta","la boca","liniers","mataderos","mataderos caba","monserrat","monte castro","nueva pompeya","nunez","palermo","palermo caba","parque avellaneda","parque chas","parque patricios","paternal","pompeya","puerto madero","recoleta","retiro","saavedra","san cristobal","san nicolas caba","san telmo","versalles","villa crespo","villa del parque","villa del parque caba","villa general mitre","villa lugano","villa luro","villa pueyrredon","villa real","villa riachuelo","villa santa rita","villa soldati","villa urquiza"]);
 
 function getAmbaSubzona(ciudad){
-  const c=(ciudad||'').toLowerCase().trim();
+  // Strip suffixes like "(Zona Sur)", "(CABA)", "(Zona Norte)" that come from the sheet
+  const c=(ciudad||'').toLowerCase().trim().replace(/\s*\(zona\s+\w+\)/,'').replace(/\s*\(caba\)/,'').trim();
   if(!c) return 'Sin ciudad';
   if(CABA_LOCS.has(c)) return 'CABA';
   if(AMBA_NORTE.has(c)) return 'Zona Norte';
@@ -83,6 +84,9 @@ function getSector(prov, zona, ciudad) {
   if ((prov === 'Buenos Aires' || prov === 'CABA') && ciudad) {
     const sub = getAmbaSubzona(ciudad);
     if (sub) return 'Buenos Aires — AMBA';
+    // Also check if city name itself contains AMBA zone hints
+    const cl = ciudad.toLowerCase();
+    if (cl.includes('zona sur')||cl.includes('zona norte')||cl.includes('zona oeste')||cl.includes('(caba)')) return 'Buenos Aires — AMBA';
   }
   if ((prov === 'Buenos Aires' || prov === 'CABA') && (zona === 'GBA' || zona === 'CABA')) {
     return 'Buenos Aires — AMBA';
@@ -178,13 +182,13 @@ function ProvModal({sector, ots, onClose, onOtClick, allData, cpCoords}){
     ots.forEach(r=>{
       // Skip OTs already assigned to a distribuidor
       if(otsConDistri.has(r.OT)) return;
-      let c = r.Ciudad||'Sin ciudad';
+      // Clean city name: strip "(Zona Sur)" type suffixes from sheet data
+      let c = (r.Ciudad||'').replace(/\s*\(zona\s+\w+\)/gi,'').replace(/\s*\(caba\)/gi,'').trim()||'Sin ciudad';
       if(isAmba){
         const sub = getAmbaSubzona(c);
         if(sub) c = sub;
         else if(r.Zona==='CABA'||c.toLowerCase().includes('caba')||c.toLowerCase().includes('ciudad autonoma')) c='CABA';
-        // Unknown AMBA city: keep the name instead of dumping to 'Sin ciudad'
-        // (c already has the value, so just let it fall through)
+        // Unknown AMBA city: keep the cleaned name instead of dumping to 'Sin ciudad'
       }
       if(!m[c])m[c]={total:0,Pendiente:0,'En Proceso':0,Extraviada:0,Despachado:0,ots:[]};
       m[c].total++;
@@ -975,7 +979,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.7</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v2.8</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
