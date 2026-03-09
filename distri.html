@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.8 · 08/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.9 · 08/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -660,7 +660,11 @@ function closeModal(){
 
 function saveModal(){
   if(!modalOt || !modalEstado) return;
-  const obs = document.getElementById('modal-obs').value.trim();
+  // Get obs: from chip selection or textarea
+  const obsEl = document.getElementById('modal-obs');
+  const activeChip = document.querySelector('.detalle-chip.active');
+  const chipVal = activeChip ? activeChip.getAttribute('data-val') || obsEl.value.trim() : '';
+  const obs = obsEl.style.display==='none' ? chipVal : obsEl.value.trim();
   const fechaMod = new Date().toLocaleString('es-AR',{
     day:'2-digit',month:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',second:'2-digit'
