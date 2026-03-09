@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.7 · 08/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.8 · 08/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -435,14 +435,37 @@
 </div>
 
 <div id="agenda-view" style="display:none">
-  <div class="cal-wrap">
-    <div class="cal-header">
-      <button class="cal-nav" onclick="calPrev()">‹</button>
-      <div class="cal-title" id="cal-title"></div>
-      <button class="cal-nav" onclick="calNext()">›</button>
+  <div style="max-width:1200px;margin:0 auto;padding:16px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <!-- MINI CALENDAR LEFT -->
+    <div style="flex-shrink:0;width:290px;background:#fff;border-radius:18px;box-shadow:0 2px 16px rgba(0,0,0,.08);padding:20px;position:sticky;top:80px">
+      <div style="font-size:15px;font-weight:900;color:var(--navy);margin-bottom:14px">📅 Agenda</div>
+      <div class="cal-header" style="margin-bottom:10px">
+        <button class="cal-nav" onclick="calPrev()">‹</button>
+        <div class="cal-title" id="cal-title"></div>
+        <button class="cal-nav" onclick="calNext()">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px" id="cal-dow"></div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px" id="cal-grid"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.5px;margin-bottom:6px">REFERENCIAS</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:12px;height:12px;border-radius:3px;background:#dbeafe;border:2px solid #3b82f6;flex-shrink:0;display:inline-block"></span>Contactos agendados</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;border:2px solid #f59e0b;flex-shrink:0;display:inline-block"></span>Retiros confirmados</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;border:2px solid #10b981;flex-shrink:0;display:inline-block"></span>Hoy</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;border:2px solid #ef4444;flex-shrink:0;display:inline-block"></span>Vencido</div>
+        </div>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;" id="cal-dow"></div>
-    <div class="cal-grid" id="cal-grid" style="margin-top:4px"></div>
+    <!-- DETAIL RIGHT -->
+    <div style="flex:1;min-width:280px">
+      <div id="agenda-detail-panel">
+        <div style="text-align:center;padding:60px 20px;color:#94a3b8;background:#fff;border-radius:18px;box-shadow:0 2px 16px rgba(0,0,0,.08)">
+          <div style="font-size:40px;margin-bottom:12px">👈</div>
+          <div style="font-weight:700;color:#475569">Seleccioná una fecha del calendario</div>
+          <div style="font-size:12px;margin-top:8px">Los contactos y retiros del día aparecerán acá</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -932,7 +955,7 @@ function switchTab(tab){
   document.getElementById('filters-wrap').style.display = tab==='ots'?'flex':'none';
   document.getElementById('agenda-view').style.display = tab==='agenda'?'block':'none';
   document.getElementById('ruta-view').style.display = tab==='ruta'?'block':'none';
-  if(tab==='agenda') renderCalendar();
+  if(tab==='agenda'){ renderCalendar(); showAgendaDay(new Date().toISOString().slice(0,10)); }
   if(tab==='ruta'){ renderRutaCal(); showRutaDay(new Date().toISOString().slice(0,10)); }
 }
 
@@ -1220,18 +1243,19 @@ function showRutaDay(dateStr){
 // ─── AGENDA CALENDAR ──────────────────────────────────────────
 function renderCalendar(){
   const today = new Date().toISOString().slice(0,10);
+  const DAYS_SHORT = ['D','L','M','M','J','V','S'];
   document.getElementById('cal-title').textContent = MONTHS_ES[calMonth]+' '+calYear;
-
-  document.getElementById('cal-dow').innerHTML = DAYS_ES.map(d=>
-    `<div class="cal-dow">${d}</div>`).join('');
+  document.getElementById('cal-dow').innerHTML = DAYS_SHORT.map(d=>
+    `<div style="text-align:center;font-size:9px;font-weight:800;color:#94a3b8;padding:3px 0">${d}</div>`).join('');
 
   // Build otMap: fecha -> [{ot, comercio, ciudad, tipo}]
   const otMap = {};
   Object.entries(agenda).forEach(([ot,val])=>{
-    if(!val.fecha) return;
-    if(!otMap[val.fecha]) otMap[val.fecha]=[];
+    const fecha = val.fechaRetiro||val.fecha;
+    if(!fecha) return;
+    if(!otMap[fecha]) otMap[fecha]=[];
     const r = allOts.find(o=>String(o.OT)===String(ot));
-    otMap[val.fecha].push({ot, comercio:r?.Comercio||'OT #'+ot, ciudad:r?.Ciudad||'', tipo:val.tipo||'contacto'});
+    otMap[fecha].push({ot, comercio:r?.Comercio||'OT #'+ot, ciudad:r?.Ciudad||'', tipo:val.tipo||'contacto'});
   });
 
   const firstDay = new Date(calYear,calMonth,1).getDay();
@@ -1246,26 +1270,96 @@ function renderCalendar(){
   let nx=1; while(cells.length%7!==0) cells.push({day:nx++,current:false,dateStr:null});
 
   document.getElementById('cal-grid').innerHTML = cells.map(cell=>{
-    const isToday=cell.dateStr===today;
+    const isToday=cell.dateStr===today, isSel=cell.dateStr===agendaSelDate;
     const events=cell.dateStr?(otMap[cell.dateStr]||[]):[];
     const hasEvents=events.length>0;
-    const cls=['cal-day',!cell.current?'other-month':'',isToday?'today':'',hasEvents?'has-events':''].filter(Boolean).join(' ');
+    const hasRetiro=events.some(e=>e.tipo==='retiro');
+    const isVen=cell.dateStr&&cell.dateStr<today&&hasEvents;
+    const count=events.length;
 
-    const evHTML=events.slice(0,3).map(e=>{
-      const isVencido=cell.dateStr<today, isHoy=cell.dateStr===today;
-      const isRetiro=e.tipo==='retiro';
-      const ecls=isVencido?'vencido':isHoy?'hoy':'';
-      const evStyle=isRetiro&&!isVencido?'background:#fef3c7;color:#d97706;border-left:3px solid #f59e0b;':'';
-      const icon=isRetiro?'📦':'📞';
-      return `<div class="cal-event ${ecls}" style="${evStyle}" onclick="event.stopPropagation();openAgendaDetail('${e.ot}','${e.comercio.replace(/'/g,"\'")}','${e.ciudad}','${cell.dateStr}')" title="OT #${e.ot}">${icon} #${e.ot}</div>`;
-    }).join('');
-    const extra=events.length>3?`<div style="font-size:9px;color:#94a3b8">+${events.length-3} más</div>`:'';
+    let bg='transparent',border='2px solid transparent',color=cell.current?'#64748b':'#e2e8f0';
+    if(isToday){bg='#E0F2F1';border='2px solid #00BFA5';color='#00695C';}
+    if(hasEvents&&!isVen&&!hasRetiro){bg='#dbeafe';border='2px solid #3b82f6';color='#1d4ed8';}
+    if(hasRetiro&&!isVen){bg='#fef3c7';border='2px solid #f59e0b';color='#92400e';}
+    if(isVen){bg='#fee2e2';border='2px solid #ef4444';color='#dc2626';}
+    if(isSel){border='2px solid var(--navy)';}
 
-    return `<div class="${cls}">
-      <div class="cal-day-num" style="${isToday?'color:var(--teal-dark);font-size:14px':''}">${cell.day}</div>
-      ${evHTML}${extra}
+    const onclick=cell.dateStr&&cell.current?`onclick="showAgendaDay('${cell.dateStr}')"` :'';
+    return `<div ${onclick} style="position:relative;height:34px;border-radius:7px;border:${border};background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:${cell.current&&(hasEvents||isToday)?'pointer':'default'};transition:all .1s">
+      <span style="font-size:11px;font-weight:${hasEvents||isToday?900:500};color:${color}">${cell.day}</span>
+      ${count>0?`<span style="position:absolute;bottom:2px;width:${count>1?'14px':'7px'};height:5px;border-radius:99px;background:${isVen?'#ef4444':hasRetiro?'#f59e0b':'#3b82f6'};font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">${count>1?count:''}</span>`:''}
     </div>`;
   }).join('');
+}
+
+let agendaSelDate = null;
+
+function showAgendaDay(dateStr){
+  agendaSelDate = dateStr;
+  renderCalendar();
+  const today=new Date().toISOString().slice(0,10);
+  const d=new Date(dateStr+'T12:00:00');
+  const label=d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const isHoy=dateStr===today, isVen=dateStr<today;
+
+  // Get all agenda items for this date
+  const items = Object.entries(agenda)
+    .filter(([,v])=>(v.fechaRetiro||v.fecha)===dateStr)
+    .map(([ot,v])=>{
+      const r=allOts.find(o=>String(o.OT)===String(ot));
+      return{ot, comercio:r?.Comercio||'OT #'+ot, ciudad:r?.Ciudad||'', calle:r?.Calle||'',
+             contacto:r?.Contacto||'', dist:r?.Dist, tipo:v.tipo||'contacto',
+             est:getEstado(ot), obs:getObs(ot)};
+    });
+
+  const panel=document.getElementById('agenda-detail-panel');
+  if(!items.length){
+    panel.innerHTML=`<div style="text-align:center;padding:40px;color:#94a3b8;background:#fff;border-radius:18px;box-shadow:0 2px 16px rgba(0,0,0,.08)">
+      <div style="font-size:32px;margin-bottom:8px">📅</div>
+      <div style="font-weight:700;text-transform:capitalize">${label}</div>
+      <div style="font-size:12px;margin-top:6px">Sin actividad agendada para este día</div>
+    </div>`;
+    return;
+  }
+
+  const hColor=isVen?'#ef4444':isHoy?'#059669':'#3b82f6';
+  const hBg=isVen?'#fee2e2':isHoy?'#d1fae5':'#dbeafe';
+  const tag=isVen?'⚠️ VENCIDO':isHoy?'🔔 HOY':'📅 PROGRAMADO';
+
+  const cards=items.map(item=>{
+    const waUrl=item.contacto?'https://wa.me/'+item.contacto.replace(/\D/g,''):null;
+    const isRetiro=item.tipo==='retiro';
+    const cardBorder=isRetiro?'#fcd34d':'#bfdbfe';
+    const estColor=item.est==='Contactado'?'#1d4ed8':item.est==='No encontrado'?'#dc2626':item.est==='Retirado'?'#059669':item.est==='Confirmado retiro'?'#d97706':'#94a3b8';
+    const estBg=item.est==='Contactado'?'#dbeafe':item.est==='No encontrado'?'#fee2e2':item.est==='Retirado'?'#d1fae5':item.est==='Confirmado retiro'?'#fef3c7':'#f1f5f9';
+    return `<div style="background:#fff;border-radius:14px;border:2px solid ${cardBorder};padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="background:${hBg};color:${hColor};border-radius:6px;padding:3px 9px;font-size:11px;font-weight:800">${isRetiro?'📦':'📞'} OT #${item.ot}</span>
+          <span style="font-size:15px;font-weight:900;color:var(--navy)">${item.comercio}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${item.est?`<span style="background:${estBg};color:${estColor};border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700">${item.est}</span>`:''}
+          ${item.dist!=null?`<span style="background:#f1f5f9;color:#475569;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700">${item.dist<2?'En ciudad':item.dist+' km'}</span>`:''}
+        </div>
+      </div>
+      ${item.ciudad?`<div style="font-size:12px;color:#64748b;margin-bottom:10px">📍 ${item.calle?item.calle+', ':''}${item.ciudad}</div>`:''}
+      ${item.obs?`<div style="font-size:11px;background:#f8fafc;border-radius:8px;padding:6px 10px;color:#475569;margin-bottom:10px;border-left:3px solid #00BFA5">💬 ${item.obs}</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${item.contacto?`<a href="${waUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;text-decoration:none;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700">💬 ${item.contacto}</a>`:''}
+        <button onclick="openModal('${item.ot}','${item.comercio.replace(/'/g,"\'")}','')" style="background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">✏️ Actualizar estado</button>
+        <button onclick="openAgendaDetail('${item.ot}','${item.comercio.replace(/'/g,"\'")}','${item.ciudad}','${dateStr}')" style="background:#fff;border:2px solid #e2e8f0;color:#64748b;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer">📅 Editar fecha</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="background:${hBg};color:${hColor};border-radius:8px;padding:5px 14px;font-size:12px;font-weight:800">${tag}</div>
+      <div style="font-size:15px;font-weight:800;color:var(--navy);text-transform:capitalize">${label}</div>
+      <div style="background:${hColor}22;color:${hColor};border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700">${items.length} item${items.length>1?'s':''}</div>
+    </div>
+    ${cards}`;
 }
 
 
@@ -1412,8 +1506,17 @@ function printRutaDay(dateStr, label, items){
 
 <div class="page-header">
   <div class="logo-block">
-    <div class="logo-text">alle<em>ata</em></div>
-    <div class="logo-sub">Portal Distribuidores</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="10" fill="#0A2540"/>
+        <circle cx="20" cy="20" r="11" stroke="#00BFA5" stroke-width="3" fill="none"/>
+        <circle cx="20" cy="20" r="5" fill="#00BFA5"/>
+      </svg>
+      <div>
+        <div class="logo-text">alle<em>ata</em></div>
+        <div class="logo-sub">Portal Distribuidores</div>
+      </div>
+    </div>
     <div class="doc-title">Desinstalaciones</div>
     <div class="doc-sub">Hoja de Ruta — Listado de visitas</div>
   </div>
@@ -1447,7 +1550,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.6</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.8</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
