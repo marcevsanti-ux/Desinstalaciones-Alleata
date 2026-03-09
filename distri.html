@@ -417,7 +417,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.21 · 09/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.1.0 · 09/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -566,6 +566,25 @@
         <button type="button" class="noenc-chip" data-val="__otro__" onclick="selectNoEncChip(this)" style="grid-column:1/-1;text-align:left">✏️ Otro motivo...</button>
       </div>
       <textarea id="modal-noenc-otro" rows="2" placeholder="Describí el motivo..." style="display:none;width:100%;margin-top:8px;padding:9px 12px;border:2px solid #fca5a5;border-radius:10px;font-size:13px;font-family:inherit;resize:none;outline:none;color:#0A2540;background:#fff"></textarea>
+      <!-- EVIDENCIA FOTOGRÁFICA -->
+      <div id="modal-foto-section" style="margin-top:12px">
+        <div style="font-size:10px;font-weight:800;color:#7c3aed;letter-spacing:.6px;margin-bottom:8px">📷 EVIDENCIA FOTOGRÁFICA</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#f5f3ff;border:2px dashed #a78bfa;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700;color:#7c3aed">
+            📸 Cámara
+            <input type="file" id="foto-camara" accept="image/*" capture="environment" style="display:none" onchange="onFotoSelected(this)">
+          </label>
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:#f5f3ff;border:2px dashed #a78bfa;border-radius:12px;cursor:pointer;font-size:13px;font-weight:700;color:#7c3aed">
+            🖼️ Galería
+            <input type="file" id="foto-galeria" accept="image/*" style="display:none" onchange="onFotoSelected(this)">
+          </label>
+        </div>
+        <div id="foto-preview-wrap" style="display:none;position:relative;border-radius:12px;overflow:hidden;border:2px solid #a78bfa">
+          <img id="foto-preview" style="width:100%;max-height:200px;object-fit:cover;display:block">
+          <button onclick="clearFoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+          <div id="foto-status" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;text-align:center"></div>
+        </div>
+      </div>
     </div>
     <div class="modal-obs">
       <textarea id="modal-obs" rows="2" placeholder="Observación (opcional)..."></textarea>
@@ -658,6 +677,35 @@ function estadoClass(est){
   return '';
 }
 
+// ─── FOTO ─────────────────────────────────────────────────────
+let fotoBase64 = null;
+let fotoMime = 'image/jpeg';
+
+function onFotoSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  fotoMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    fotoBase64 = e.target.result; // full data URL
+    document.getElementById('foto-preview').src = fotoBase64;
+    document.getElementById('foto-preview-wrap').style.display = 'block';
+    document.getElementById('foto-status').textContent = '✓ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+  // Reset other input so both can trigger onchange
+  document.getElementById('foto-camara').value = '';
+  document.getElementById('foto-galeria').value = '';
+}
+
+function clearFoto() {
+  fotoBase64 = null;
+  document.getElementById('foto-preview-wrap').style.display = 'none';
+  document.getElementById('foto-preview').src = '';
+  document.getElementById('foto-camara').value = '';
+  document.getElementById('foto-galeria').value = '';
+}
+
 // ─── MODAL ────────────────────────────────────────────────────
 function openModal(ot, comercio, estadoSugerido){
   modalOt = String(ot);
@@ -707,6 +755,7 @@ function selectNoEncChip(btn){
 function closeModal(){
   document.getElementById('modal').style.display = 'none';
   modalOt = null; modalEstado = null;
+  clearFoto();
 }
 
 function saveModal(){
@@ -742,9 +791,20 @@ function saveModal(){
   }
 
   estados[String(modalOt)] = { estado: modalEstado, obs, fecha: fechaMod };
-  saveEstado(modalOt);
+  const motivoGuardado = modalEstado === 'No encontrado'
+    ? (document.querySelector('.noenc-chip.active')?.dataset.val === '__otro__'
+        ? document.getElementById('modal-noenc-otro').value.trim()
+        : document.querySelector('.noenc-chip.active')?.dataset.val || '')
+    : '';
+  const fotoParaSubir = fotoBase64;
+  const fotoMimeParaSubir = fotoMime;
   const otNum = modalOt;
   closeModal();
+  // Show upload toast if foto attached
+  if(fotoParaSubir) toast('📷 Subiendo evidencia…');
+  saveEstado(otNum, motivoGuardado, fotoParaSubir, fotoMimeParaSubir).then(()=>{
+    if(fotoParaSubir) toast('✅ Evidencia guardada en Drive');
+  });
   const d = modalEstado==='Confirmado retiro'
     ? '📦 OT #'+otNum+' confirmada para '+new Date(document.getElementById('modal-fecha-input')?.value+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long'})
     : '✅ OT #'+otNum+' → '+modalEstado;
@@ -906,13 +966,26 @@ function renderAll(){
 }
 
 // ─── SAVE ─────────────────────────────────────────────────────
-async function saveEstado(otNum){
+async function saveEstado(otNum, motivo, foto, fotoMimeType){
   try{
     const key=`alleata_distri_estados_${DISTRI_NAME.replace(/\s/g,'_')}`;
     localStorage.setItem(key, JSON.stringify(estados));
   }catch(e){}
   if(!WEBHOOK_URL||!estados[String(otNum)]) return;
-  const payload={distri:DISTRI_NAME,ot:String(otNum),estado:estados[String(otNum)].estado,obs:estados[String(otNum)].obs||'',fecha:estados[String(otNum)].fecha||''};
+  const st = estados[String(otNum)];
+  const payload = {
+    distri: DISTRI_NAME,
+    ot: String(otNum),
+    estado: st.estado,
+    motivo: motivo || '',
+    obs: st.obs || '',
+    fecha: st.fecha || '',
+  };
+  // Adjuntar foto si existe (base64 completo)
+  if (foto) {
+    payload.foto = foto;
+    payload.fotoMime = fotoMimeType || 'image/jpeg';
+  }
   try{
     await fetch(WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),mode:'no-cors'});
   }catch(e){}
@@ -1597,7 +1670,7 @@ function printRutaDay(dateStr, label, items){
 </table>
 
 <div class="page-footer">
-  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.21</div>
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.1.0</div>
   <div class="footer-right">Documento generado el ${now}</div>
 </div>
 
