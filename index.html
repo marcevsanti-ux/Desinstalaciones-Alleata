@@ -44,9 +44,9 @@ const PROV_CANON = {
 
 const LOCALIDAD_CP = {"guernica":"1748", "general rodriguez":"1748", "presidente peron":"1748", "canuelas":"1814", "cañuelas":"1814", "lujan":"6700", "luján":"6700", "mercedes":"6600", "chivilcoy":"6620", "junin":"6000", "junín":"6000", "lincoln":"6070", "trenque lauquen":"6400", "pehuajo":"6450", "pehuajó":"6450", "olavarria":"7400", "olavarría":"7400", "tandil":"7000", "necochea":"7630", "miramar":"7607", "pinamar":"7167", "villa gesell":"7165", "bahia blanca":"8000", "bahía blanca":"8000", "tres arroyos":"7500", "coronel suarez":"7540", "coronel suárez":"7540", "azul":"7300", "bolivar":"7550", "bolívar":"7550", "9 de julio":"6500", "bragado":"6640", "chacabuco":"6740", "pergamino":"2700", "san nicolas":"2900", "san nicolás":"2900", "baradero":"2942", "campana":"2804", "zarate":"2820", "zárate":"2820", "escobar":"1625", "pilar":"1629", "exaltacion de la cruz":"2806", "carmen de areco":"6725", "san antonio de areco":"2760", "la calera":"5151", "villa carlos paz":"5152", "cosquin":"5166", "cosquín":"5166", "alta gracia":"5186", "rio cuarto":"5800", "río cuarto":"5800", "villa maria":"5900", "villa maría":"5900", "san francisco":"2400", "bell ville":"2550", "rio tercero":"5850", "río tercero":"5850", "monte cristo":"5127", "jesús maria":"5220", "jesus maria":"5220", "rosario":"2000", "santa fe":"3000", "rafaela":"2300", "reconquista":"3560", "venado tuerto":"2600", "villa constitucion":"2900", "casilda":"2170", "mendoza":"5500", "godoy cruz":"5501", "lujan de cuyo":"5507", "luján de cuyo":"5507", "maipu":"5519", "maipú":"5519", "san martin":"5570", "san martín":"5570", "san rafael":"5600", "san miguel de tucuman":"4000", "san miguel de tucumán":"4000", "tucuman":"4000", "tucumán":"4000", "yerba buena":"4107", "tafi viejo":"4103", "salta":"4400", "general guemes":"4430", "general güemes":"4430", "neuquen":"8300", "neuquén":"8300", "san martin de los andes":"8370", "villa la angostura":"8407", "bariloche":"8400", "viedma":"8500", "cipolletti":"8324", "general roca":"8332", "posadas":"3300", "resistencia":"3500", "corrientes":"3400", "parana":"3100", "paraná":"3100", "concordia":"3200", "san salvador de jujuy":"4600", "jujuy":"4600", "palpalá":"4612", "formosa":"3600", "comodoro rivadavia":"9000", "rawson":"9100", "trelew":"9100", "puerto madryn":"9120", "santa rosa":"6300"};
 
-const AMBA_NORTE = new Set(["agronomia","almagro","balvanera","balvanera caba","beccar","belgrano","bella vista","boulogne","caballito","campana","chacarita","coghlan","colegiales","constitucion","devoto","don torcuato","el talar","el talar zona norte","escobar","exaltacion de la cruz","flores","floresta","florida","florida oeste","general pacheco","general rodriguez","grand bourg","hurlingham","ituzaingo","jose c paz","liniers","los polvorines","lujan","malvinas argentinas","martinez","mataderos caba","monserrat","monte castro","moreno","munro","munro zona norte","nordelta","nunez","olivos","once","palermo","palermo caba","palermo hollywood","palermo soho","parque avellaneda","parque chas","paternal","pilar","pilar bs as","pilar centro","puerto madero","recoleta","retiro","rincon de milberg","saavedra","san fernando","san isidro","san martin","san miguel","san miguel centro","san nicolas","san nicolas caba","san telmo","tigre","tigre centro","velez sarsfield","versalles","vicente lopez","villa adelina","villa crespo","villa del parque","villa del parque caba","villa luro","villa lynch","villa pueyrredon","villa real","villa urquiza","virreyes","zarate","villa ballester","jose leon suarez","josé leon suárez","muñiz","muniz","presidente derqui","open door","villa maipú","villa maipu","tortuguitas","del viso","maquinista savio","ingeniero maschwitz","ingeniero pablo noether","garín","garin","jose c. paz","josé c. paz"]);
-const AMBA_SUR = new Set(["almirante brown","avellaneda","avellaneda centro","banfield","barracas","berazategui","berazategui centro","bernal","bernal oeste","boedo","canning","canuelas","cañuelas","claypole","constitucion","constitución","dock sud","el jaguel","esteban echeverria","ezeiza","ezpeleta","florencio varela","glew","guernica","ianus oeste","la boca","lanus","lanus este","lanus oeste","lomas","lomas de zamora","lomas de zamora centro","longchamps","monte grande","nueva pompeya","parque patricios","piñeyro","pompeya","presidente peron","quilmes","quilmes centro","quilmes oeste","ranelagh","remedios de escalada","saenz peña","san cristobal","san jose","san vicente","sarandi","souza","temperley","tristan suarez","tristán suárez","varela","villa dominico","villa elisa","villa lugano","villa riachuelo","villa soldati","villa zagala","wilde","monte grande sur","jose marmol","jose maría marmol","burzaco","adrogué","adrogue","ing. budge","budge","rafael calzada","turdera","ingeniero budge","gerli","don bosco","llavallol","carlos spegazzini","alejandro korn","bosques","villa brown","zeballos","pereyra","villa garibaldi","el jaguel","el jagüel","canning","ezeiza canning","tristán suárez","tristan suarez","monte grande","carlos spegazzini","la plata","city bell","el peligro","los hornos","villa fiorito","villa fiorito lomas","olmos","etcheverry","arturo segui","abasto","poblet","joaquin gorina","manuel b. gonnet","gonnet","villa castells","ringuelet","tolosa","ensenada","berisso"]);
-const AMBA_OESTE = new Set(["aldo bonzi","almagro","caballito","castelar","ciudad evita","el palomar","flores","floresta","general las heras","gonzalez catan","gonzalez catán","gregorio de laferrere","haedo","isidro casanova","ituzaingo centro","la matanza","laferrere","liniers","maipu","maipú","marcos paz","merlo","monte castro","moron","moron centro","once","palermo","rafael castillo","ramos mejia","san justo","tablada","tapiales","versalles","villa lobos","villa luro","villa luzuriaga","villa madero","villa tesei","francisco alvarez","francisco álvarez","general rodriguez","gral rodriguez","paso del rey","parque leloir","villa rodriguez","mariano acosta","pontevedra","san antonio de padua","padua","libertad","loma hermosa","pablo podestá","pablo podesta","jose ingenieros","josé ingenieros","ciudadela","llavallol","villa del parque","villa mazzini","tres de febrero"]);
+const AMBA_NORTE = new Set(["agronomia","almagro","balvanera","balvanera caba","beccar","belgrano","bella vista","boulogne","caballito","campana","chacarita","coghlan","colegiales","constitucion","devoto","don torcuato","el talar","el talar zona norte","escobar","exaltacion de la cruz","flores","floresta","florida","florida oeste","general pacheco","general rodriguez","grand bourg","hurlingham","ituzaingo","jose c paz","liniers","los polvorines","lujan","malvinas argentinas","martinez","mataderos caba","monserrat","monte castro","moreno","munro","munro zona norte","nordelta","nunez","olivos","once","palermo","palermo caba","palermo hollywood","palermo soho","parque avellaneda","parque chas","paternal","pilar","pilar bs as","pilar centro","puerto madero","recoleta","retiro","rincon de milberg","saavedra","san fernando","san isidro","san martin","san miguel","san miguel centro","san nicolas","san nicolas caba","san telmo","tigre","tigre centro","velez sarsfield","versalles","vicente lopez","villa adelina","villa crespo","villa del parque","villa del parque caba","villa luro","villa lynch","villa pueyrredon","villa real","villa urquiza","virreyes","zarate","villa ballester","jose leon suarez","josé leon suárez","muñiz","muniz","presidente derqui","open door","villa maipú","villa maipu","tortuguitas","del viso","maquinista savio","ingeniero maschwitz","ingeniero pablo noether","garín","garin","jose c. paz","josé c. paz","pacheco","villa celina bs as","tigre bs as","trujui","cuartel v","cuartel 5","villa de mayo","ing. adolfo sourdeaux","adolfo sourdeaux","jose c paz centro","san miguel de tucuman","los polvorines centro","bella vista bs as","villa rosa"]);
+const AMBA_SUR = new Set(["almirante brown","avellaneda","avellaneda centro","banfield","barracas","berazategui","berazategui centro","bernal","bernal oeste","boedo","canning","canuelas","cañuelas","claypole","constitucion","constitución","dock sud","el jaguel","esteban echeverria","ezeiza","ezpeleta","florencio varela","glew","guernica","ianus oeste","la boca","lanus","lanus este","lanus oeste","lomas","lomas de zamora","lomas de zamora centro","longchamps","monte grande","nueva pompeya","parque patricios","piñeyro","pompeya","presidente peron","quilmes","quilmes centro","quilmes oeste","ranelagh","remedios de escalada","saenz peña","san cristobal","san jose","san vicente","sarandi","souza","temperley","tristan suarez","tristán suárez","varela","villa dominico","villa elisa","villa lugano","villa riachuelo","villa soldati","villa zagala","wilde","monte grande sur","jose marmol","jose maría marmol","burzaco","adrogué","adrogue","ing. budge","budge","rafael calzada","turdera","ingeniero budge","gerli","don bosco","llavallol","carlos spegazzini","alejandro korn","bosques","villa brown","zeballos","pereyra","villa garibaldi","el jaguel","el jagüel","canning","ezeiza canning","tristán suárez","tristan suarez","monte grande","carlos spegazzini","la plata","city bell","el peligro","los hornos","villa fiorito","villa fiorito lomas","olmos","etcheverry","arturo segui","abasto","poblet","joaquin gorina","manuel b. gonnet","gonnet","villa castells","ringuelet","tolosa","ensenada","berisso","el pato bs as","el pato","valentin alsina","valentín alsina","domselaar","lomas del mirador","9 de abril","ezeiza centro"," monte grande","ing. budge centro","villa centenario"]);
+const AMBA_OESTE = new Set(["aldo bonzi","almagro","caballito","castelar","ciudad evita","el palomar","flores","floresta","general las heras","gonzalez catan","gonzalez catán","gregorio de laferrere","haedo","isidro casanova","ituzaingo centro","la matanza","laferrere","liniers","maipu","maipú","marcos paz","merlo","monte castro","moron","moron centro","once","palermo","rafael castillo","ramos mejia","san justo","tablada","tapiales","versalles","villa lobos","villa luro","villa luzuriaga","villa madero","villa tesei","francisco alvarez","francisco álvarez","general rodriguez","gral rodriguez","paso del rey","parque leloir","villa rodriguez","mariano acosta","pontevedra","san antonio de padua","padua","libertad","loma hermosa","pablo podestá","pablo podesta","jose ingenieros","josé ingenieros","ciudadela","llavallol","villa del parque","villa mazzini","tres de febrero","villa celina","lomas del mirador","aldo bonzi centro"]);
 const CABA_LOCS  = new Set(["agronomia","almagro","balvanera caba","barracas","belgrano","boedo","buenos aires","caba","caballito","capital federal","chacarita","ciudad autonoma de buenos aires","ciudad autónoma de buenos aires","ciudad de buenos aires","coghlan","colegiales","constitucion","devoto","flores","flores caba","floresta","la boca","liniers","mataderos","mataderos caba","monserrat","monte castro","nueva pompeya","nunez","palermo","palermo caba","parque avellaneda","parque chas","parque patricios","paternal","pompeya","puerto madero","recoleta","retiro","saavedra","san cristobal","san nicolas caba","san telmo","versalles","villa crespo","villa del parque","villa del parque caba","villa general mitre","villa lugano","villa luro","villa pueyrredon","villa real","villa riachuelo","villa santa rita","villa soldati","villa urquiza"]);
 
 function normAcc(s){return(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
@@ -57,6 +57,12 @@ function getAmbaSubzona(ciudad){
   const c=normAcc(raw); // sin acentos
   // Detect "ciudad autonoma..." variants as CABA
   if(c.startsWith('ciudad auto')||c.startsWith('capital fed')||c==='caba'||c==='buenos aires') return 'CABA';
+  // Compound names like "Recoleta / Palermo" -> take part before "/" and check
+  const cBase=c.replace(/\s*\/\s*.*/,'').trim();
+  if(cBase!==c&&(CABA_LOCS.has(cBase)||CABA_LOCS.has(normAcc(cBase)))) return 'CABA';
+  if(cBase!==c&&(AMBA_SUR.has(cBase)||AMBA_SUR.has(normAcc(cBase)))) return 'Zona Sur';
+  if(cBase!==c&&(AMBA_NORTE.has(cBase)||AMBA_NORTE.has(normAcc(cBase)))) return 'Zona Norte';
+  if(cBase!==c&&(AMBA_OESTE.has(cBase)||AMBA_OESTE.has(normAcc(cBase)))) return 'Zona Oeste';
   if(CABA_LOCS.has(c)||CABA_LOCS.has(raw)) return 'CABA';
   if(AMBA_NORTE.has(c)||AMBA_NORTE.has(raw)) return 'Zona Norte';
   if(AMBA_SUR.has(c)||AMBA_SUR.has(raw))   return 'Zona Sur';
@@ -914,12 +920,43 @@ function App() {
               if(ciudad&&LOCALIDAD_CP[ciudad]) return LOCALIDAD_CP[ciudad];
               return raw;
             })();
-            // ── Provincia: usar CP como fuente de verdad para Patagonia ─────
+            // ── Provincia: coordenadas del CP como fuente de verdad ──────────
             const pn=(()=>{
               const cpN=parseInt(cpFinal)||0;
-              if(cpN>=9000) return 'Santa Cruz';
-              if(cpN>=8800) return 'Neuquén';
-              if(cpN>=8300) return 'Río Negro';
+              const coords=cpN?CP_COORDS[cpN]:null;
+              if(coords){
+                const lat=coords[0],lon=coords[1];
+                // Tierra del Fuego: lat < -52
+                if(lat<-52) return 'Tierra del Fuego';
+                // Santa Cruz: lat < -46
+                if(lat<-46) return 'Santa Cruz';
+                // Chubut: lat < -42
+                if(lat<-42) return 'Chubut';
+                // Bariloche/El Bolsón area (Río Negro andino): lat < -41, lon < -69
+                if(lat<-41) return lon<-69?'Río Negro':'Río Negro';
+                // Viedma/Costa RN: lat < -39.5, lon > -65
+                // Río Negro costa/centro: lat < -39.5, lon > -64.5
+                if(lat<-39.5&&lon>-65.5) return 'Río Negro';
+                // Alto Valle del Río Negro — ANTES que regla Neuquén
+                // Cipolletti, Gral Roca, Allen, Villa Regina: lon -65.5 a -68, lat -38.5 a -40.5
+                if(lon>=-68.0&&lon<=-65.5&&lat<=-38.5&&lat>=-40.5) return 'Río Negro';
+                // Neuquén city: lon < -68, lat -38 a -39.5
+                if(lon<-68.0&&lat>-39.5&&lat>-40) return 'Neuquén';
+                // Neuquén provincia amplia: lon < -65, lat -35 a -41.5 (incluye Villa La Angostura)
+                if(lon<-65&&lat>-41.5&&lat<-35) return 'Neuquén';
+                // Mendoza/San Juan: lon < -66, lat > -35
+                if(lon<-65&&lat>-35&&lat<-30) return 'Mendoza';
+              }
+              // Fallback: range-based for CPs not in coords dict
+              if(cpN>=9300) return 'Santa Cruz';
+              if(cpN>=9000) return 'Chubut';
+              if(cpN>=8700) return 'Chubut';
+              if(cpN>=8500) return 'Río Negro';
+              if(cpN>=8300) {
+                // 8300-8499: could be Neuquén or Río Negro — use normProv as tiebreaker
+                const p=normProv(r.Provincia_limpia||r.Provincia||r.b||'');
+                return (p==='Neuquén'||p==='Río Negro')?p:'Neuquén';
+              }
               return normProv(r.Provincia_limpia||r.Provincia||r.b||'');
             })();
             const zona=r.Categoria_Zona__c||r.Zona||'Sin Zona';
@@ -999,7 +1036,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v3.8</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v4.5</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
