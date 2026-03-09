@@ -397,7 +397,7 @@
     <img class="header-logo" src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" onerror="this.style.display='none'"/>
     <div class="header-divider"></div>
     <div>
-      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.5 · 08/03/26</span></div>
+      <div class="header-title">Portal Distribuidor <span style="font-size:10px;font-weight:600;background:rgba(255,255,255,.15);border-radius:6px;padding:2px 7px;margin-left:4px;letter-spacing:.3px">v1.0.7 · 08/03/26</span></div>
       <div class="header-sub" id="header-sub">Cargando...</div>
     </div>
     <div class="distri-badge" id="distri-badge">...</div>
@@ -1172,16 +1172,29 @@ function showRutaDay(dateStr){
     </div>`;
   }).join('');
 
-  // Static map using OpenStreetMap via iframe (no API key needed)
-  const osmCenter = items[0] ? encodeURIComponent((items[0].calle||items[0].comercio)+', '+(items[0].ciudad||'Argentina')) : 'Mar+del+Plata';
+  // Build OSM map with markers for each OT using static map via leaflet in iframe
+  const otMarkers = items.map((item,i)=>{
+    const addr = encodeURIComponent((item.calle||item.comercio)+', '+(item.ciudad||'Argentina')+', Argentina');
+    return {addr, label:'OT #'+item.ot, comercio:item.comercio, i:i+1};
+  });
+  // Use Google Maps Embed with search - shows pins for addresses
+  const allAddresses = items.map(item=>(item.calle||item.comercio)+', '+(item.ciudad||'Argentina')+', Argentina').join('|');
+  const gmEmbedQ = encodeURIComponent(items.map(item=>(item.calle||item.comercio)+', '+(item.ciudad||'Argentina')).join(' | '));
+  
   const mapSection = `<div style="margin-top:16px;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.1)">
     <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;padding:10px 14px;border-bottom:1px solid #e2e8f0">
       <span style="font-size:12px;font-weight:700;color:var(--navy)">&#128506;&#65039; Mapa del día — ${items.length} parada${items.length>1?'s':''}</span>
       <a href="${mapsMultiUrl}" target="_blank" style="background:#4285F4;color:#fff;text-decoration:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700">&#128205; Abrir ruta completa en Maps</a>
     </div>
-    <iframe src="https://maps.google.com/maps?q=${osmCenter}&output=embed&z=13" width="100%" height="280" style="border:0;display:block" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div id="ruta-map-container" style="width:100%;height:300px;background:#e8f0fe;display:flex;align-items:center;justify-content:center">
+      <div style="text-align:center;color:#475569">
+        <div style="font-size:24px;margin-bottom:8px">&#128506;&#65039;</div>
+        <div style="font-size:13px;font-weight:700">Cargando mapa...</div>
+      </div>
+    </div>
   </div>`;
 
+  const printData = JSON.stringify(items.map(i=>({ot:i.ot,comercio:i.comercio,ciudad:i.ciudad,calle:i.calle,contacto:i.contacto,dist:i.dist})));
   panel.innerHTML=`
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1189,10 +1202,18 @@ function showRutaDay(dateStr){
       <div style="font-size:15px;font-weight:800;color:var(--navy);text-transform:capitalize">${label}</div>
       <div style="background:${hColor}22;color:${hColor};border-radius:99px;padding:3px 12px;font-size:12px;font-weight:700">${items.length} retiro${items.length>1?'s':''}</div>
     </div>
-    <button onclick="printRutaDay('${dateStr}','${label.replace(/'/g,"\'")}',${JSON.stringify(items.map(i=>({ot:i.ot,comercio:i.comercio,ciudad:i.ciudad,calle:i.calle,contacto:i.contacto,dist:i.dist})))})" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">&#128438; Imprimir</button>
+    <button id="print-ruta-btn" style="background:var(--navy);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">&#128438; Imprimir</button>
   </div>
   ${cards}
   ${mapSection}`;
+
+  // Bind print button after innerHTML is set
+  document.getElementById('print-ruta-btn').onclick = function(){
+    printRutaDay(dateStr, label, items);
+  };
+
+  // Render Leaflet map after DOM update
+  setTimeout(()=>renderLeafletMap(items), 100);
 }
 
 
@@ -1248,57 +1269,193 @@ function renderCalendar(){
 }
 
 
+// ─── LEAFLET MAP ─────────────────────────────────────────────
+function renderLeafletMap(items){
+  const container = document.getElementById('ruta-map-container');
+  if(!container) return;
+
+  // Build iframe with leaflet that geocodes each address
+  const addresses = items.map(item=>({
+    label: 'OT #'+item.ot,
+    comercio: item.comercio,
+    query: encodeURIComponent((item.calle||item.comercio)+', '+(item.ciudad||'Argentina')+', Argentina')
+  }));
+
+  const leafletHtml = `<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+    <style>html,body,#map{margin:0;padding:0;width:100%;height:100%}</style>
+  </head><body>
+    <div id="map"></div>
+    <script>
+      const map = L.map('map');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'&copy; OpenStreetMap contributors',maxZoom:18
+      }).addTo(map);
+
+      const items = ${JSON.stringify(items.map(it=>({
+        ot:it.ot, comercio:it.comercio, calle:it.calle||'', ciudad:it.ciudad||'Argentina'
+      })))};
+
+      const bounds = [];
+      const colors = ['#00BFA5','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#10b981'];
+
+      Promise.all(items.map((item,i)=>{
+        const q = encodeURIComponent((item.calle||item.comercio)+', '+item.ciudad+', Argentina');
+        return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+q+'&limit=1')
+          .then(r=>r.json())
+          .then(data=>{
+            if(!data.length) return;
+            const lat=+data[0].lat, lng=+data[0].lon;
+            bounds.push([lat,lng]);
+            const color = colors[i%colors.length];
+            const icon = L.divIcon({
+              html: '<div style="background:'+color+';color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3)">'+(i+1)+'</div>',
+              className:'',iconSize:[32,32],iconAnchor:[16,16]
+            });
+            L.marker([lat,lng],{icon})
+              .addTo(map)
+              .bindPopup('<b>OT #'+item.ot+'</b><br>'+item.comercio+'<br><small>'+(item.calle?item.calle+', ':'')+item.ciudad+'</small>');
+          }).catch(()=>{});
+      })).then(()=>{
+        if(bounds.length===1) map.setView(bounds[0],15);
+        else if(bounds.length>1) map.fitBounds(bounds,{padding:[30,30]});
+        else map.setView([-38.0,-57.5],12);
+      });
+    <\/script>
+  </body></html>`;
+
+  container.innerHTML = '';
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;height:300px;border:0;display:block';
+  iframe.srcdoc = leafletHtml;
+  container.appendChild(iframe);
+}
+
 // ─── IMPRIMIR HOJA DE RUTA ────────────────────────────────────
 function printRutaDay(dateStr, label, items){
   const d = new Date(dateStr+'T12:00:00');
   const dateLabel = d.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const now = new Date().toLocaleString('es-AR');
+
   const rows = items.map((item,i)=>`
-    <tr style="page-break-inside:avoid">
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#00695C;white-space:nowrap">${i+1}. OT #${item.ot}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;font-weight:800;color:#0A2540">${item.comercio}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;color:#475569">${item.calle||'—'}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;color:#475569">${item.ciudad||'—'}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;color:#64748b;white-space:nowrap">${item.dist!=null?(item.dist<2?'En ciudad':item.dist+' km'):'—'}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;color:#64748b">${item.contacto||'—'}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;min-width:80px"></td>
+    <tr>
+      <td class="ot-cell">${i+1}</td>
+      <td class="ot-cell" style="color:#00695C;font-weight:700">OT #${item.ot}</td>
+      <td class="main-cell">${item.comercio||'—'}</td>
+      <td>${item.calle||'—'}</td>
+      <td>${item.ciudad||'—'}</td>
+      <td style="white-space:nowrap">${item.dist!=null?(item.dist<2?'En ciudad':item.dist+' km'):'—'}</td>
+      <td>${(item.contacto||'—')}</td>
+      <td class="obs-cell"></td>
     </tr>`).join('');
 
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-  <title>Hoja de Ruta · ${dateLabel}</title>
-  <style>
-    body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#0A2540;font-size:13px}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:14px;border-bottom:3px solid #00BFA5}
-    .logo{font-size:22px;font-weight:900;color:#0A2540}
-    .logo span{color:#00BFA5}
-    .meta{text-align:right;font-size:12px;color:#64748b}
-    .date{font-size:18px;font-weight:800;text-transform:capitalize;margin-bottom:6px}
-    table{width:100%;border-collapse:collapse;font-size:12px}
-    th{background:#0A2540;color:#fff;padding:9px 8px;text-align:left;font-size:11px;letter-spacing:.5px}
-    tr:nth-child(even){background:#f8fafc}
-    .footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}
-    @media print{body{padding:10px} button{display:none}}
-  </style></head><body>
-  <div class="header">
-    <div>
-      <div class="logo">alle<span>ata</span></div>
-      <div style="font-size:11px;color:#64748b;margin-top:2px">Portal Distribuidores</div>
-    </div>
-    <div class="meta">
-      <div style="font-weight:800;font-size:15px;color:#0A2540;text-transform:capitalize">${dateLabel}</div>
-      <div style="margin-top:3px">Distribuidor: <b>${DISTRI_NAME}</b></div>
-      <div style="margin-top:2px">${items.length} retiro${items.length!==1?'s':''} programado${items.length!==1?'s':''}</div>
+  win.document.write(`<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Hoja de Ruta · ${dateLabel}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Arial',sans-serif;background:#fff;color:#0A2540;font-size:12px;padding:28px 32px}
+  
+  /* HEADER */
+  .page-header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;margin-bottom:20px;border-bottom:4px solid #00BFA5}
+  .logo-block{}
+  .logo-text{font-size:28px;font-weight:900;letter-spacing:-1px;color:#0A2540;line-height:1}
+  .logo-text em{color:#00BFA5;font-style:normal}
+  .logo-sub{font-size:10px;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+  .doc-title{font-size:18px;font-weight:900;color:#0A2540;margin-top:10px;text-transform:uppercase;letter-spacing:.5px}
+  .doc-sub{font-size:11px;color:#64748b;margin-top:3px}
+
+  .meta-block{text-align:right}
+  .meta-tag{display:inline-block;background:#E0F2F1;color:#00695C;border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+  .meta-date{font-size:16px;font-weight:900;color:#0A2540;text-transform:capitalize;line-height:1.2}
+  .meta-info{font-size:11px;color:#64748b;margin-top:6px;line-height:1.8}
+  .meta-info b{color:#0A2540}
+
+  /* DIVIDER */
+  .section-title{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  thead tr{background:#0A2540}
+  thead th{color:#fff;padding:9px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+  thead th:first-child{border-radius:6px 0 0 0;width:30px;text-align:center}
+  thead th:last-child{border-radius:0 6px 0 0}
+  tbody tr:nth-child(even){background:#F8FFFE}
+  tbody tr:hover{background:#E0F2F1}
+  tbody td{padding:9px 10px;border-bottom:1px solid #e2e8f0;vertical-align:middle}
+  .ot-cell{text-align:center;color:#94a3b8;font-weight:700}
+  .main-cell{font-weight:800;color:#0A2540;font-size:12px}
+  .obs-cell{min-width:100px;border-bottom:1px solid #cbd5e1!important}
+  
+  /* TEAL accent left border on rows */
+  tbody tr td:first-child{border-left:3px solid transparent}
+  tbody tr:nth-child(odd) td:first-child{border-left-color:#00BFA5}
+
+  /* FOOTER */
+  .page-footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+  .footer-left{font-size:9px;color:#94a3b8}
+  .footer-right{font-size:9px;color:#94a3b8;text-align:right}
+
+  /* PRINT */
+  @media print{
+    body{padding:12px 16px}
+    .no-print{display:none!important}
+    thead{display:table-header-group}
+    tbody tr{page-break-inside:avoid}
+  }
+  .print-btn{background:linear-gradient(135deg,#00897B,#00BFA5);color:#fff;border:none;padding:11px 28px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:20px;box-shadow:0 4px 14px rgba(0,191,165,.3)}
+</style>
+</head><body>
+
+<div class="page-header">
+  <div class="logo-block">
+    <div class="logo-text">alle<em>ata</em></div>
+    <div class="logo-sub">Portal Distribuidores</div>
+    <div class="doc-title">Desinstalaciones</div>
+    <div class="doc-sub">Hoja de Ruta — Listado de visitas</div>
+  </div>
+  <div class="meta-block">
+    <div class="meta-tag">&#128197; Hoja de Ruta</div>
+    <div class="meta-date">${dateLabel}</div>
+    <div class="meta-info">
+      Distribuidor: <b>${DISTRI_NAME}</b><br>
+      Total de visitas: <b>${items.length}</b><br>
+      Generado: ${now}
     </div>
   </div>
-  <table>
-    <thead><tr>
-      <th>#OT</th><th>Comercio</th><th>Dirección</th><th>Ciudad</th><th>Dist.</th><th>Contacto</th><th>Observación</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="footer">Generado el ${new Date().toLocaleString('es-AR')} · Alleata Portal Distribuidores v1.0.4</div>
-  <br><button onclick="window.print()" style="background:#00BFA5;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px">🖨️ Imprimir / Guardar PDF</button>
-  </body></html>`);
+</div>
+
+<div class="section-title">Listado de órdenes de trabajo</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>OT</th>
+      <th>Comercio</th>
+      <th>Dirección</th>
+      <th>Ciudad</th>
+      <th>Dist.</th>
+      <th>Contacto</th>
+      <th>Observación</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+
+<div class="page-footer">
+  <div class="footer-left">Alleata · Portal Distribuidores · v1.0.6</div>
+  <div class="footer-right">Documento generado el ${now}</div>
+</div>
+
+<div class="no-print" style="text-align:center">
+  <button class="print-btn" onclick="window.print()">&#128438; Imprimir / Guardar PDF</button>
+</div>
+
+</body></html>`);
   win.document.close();
 }
 
