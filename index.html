@@ -942,17 +942,74 @@ function DistribuidoresTab({data,sheetDistri}){
 
 // ─── IMPORTAR TAB ─────────────────────────────────────────────
 function ImportarTab({webhookUrl}){
-  const [step, setStep] = React.useState('idle'); // idle | reading | preview | importing | done
-  const [exitosas, setExitosas] = React.useState([]);       // WorkOrderNumbers exitosos de Desinstalación
-  const [todasDesins, setTodasDesins] = React.useState([]); // todas las Desinstalaciones del xlsx
-  const [matchExitosos, setMatchExitosos] = React.useState([]); // las que están en Hoja13 como Exitoso (para mostrar)
+  const [step, setStep] = React.useState('idle'); // idle | reading | preview | importing | done | backups
+  const [exitosas, setExitosas] = React.useState([]);
+  const [todasDesins, setTodasDesins] = React.useState([]);
+  const [matchExitosos, setMatchExitosos] = React.useState([]);
   const [fileName, setFileName] = React.useState('');
   const [result, setResult] = React.useState(null);
   const [error, setError] = React.useState('');
-  const [sheetData, setSheetData] = React.useState(null); // datos de Hoja13 cargados via fetch
+  const [sheetData, setSheetData] = React.useState(null);
+  const [backups, setBackups] = React.useState([]);
+  const [restoring, setRestoring] = React.useState(false);
 
   // URL hardcodeada de Hoja13 como CSV
   const HOJA13_CSV_URL = 'https://docs.google.com/spreadsheets/d/1PHrJMqAeZamdmZJuCebgPBJd-fGQtdmm/gviz/tq?tqx=out:csv&gid=1843553678';
+
+  const BACKUP_KEY = 'alleata_backups';
+
+  // Cargar lista de backups desde localStorage
+  function loadBackups(){
+    try{
+      const raw = localStorage.getItem(BACKUP_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+
+  // Guardar backup del CSV actual de Hoja13
+  async function makeBackup(csvText, importFileName){
+    const now = new Date();
+    const label = now.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const backup = {
+      id: now.getTime(),
+      fecha: label,
+      archivo: importFileName,
+      csv: csvText
+    };
+    try{
+      const existing = loadBackups();
+      // Máximo 10 backups
+      const updated = [backup, ...existing].slice(0,10);
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(updated));
+      return true;
+    }catch(e){
+      console.warn('No se pudo guardar backup (localStorage lleno?):', e);
+      return false;
+    }
+  }
+
+  // Restaurar un backup enviando el CSV al webhook
+  async function handleRestore(backup){
+    if(!webhookUrl){ setError('Configurá el webhook en Config'); return; }
+    if(!confirm(`¿Restaurar el backup del ${backup.fecha}? Esto va a sobreescribir el estado actual de Hoja13.`)) return;
+    setRestoring(true);
+    try{
+      await fetch(webhookUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'restoreBackup', csv: backup.csv}),
+        mode:'no-cors'
+      });
+      alert(`Restore del ${backup.fecha} enviado. Revisá Apps Script para confirmar.`);
+    }catch(e){
+      setError('Error al restaurar: ' + e.message);
+    }
+    setRestoring(false);
+  }
+
+  React.useEffect(()=>{
+    setBackups(loadBackups());
+  },[]);
 
   function readXlsx(file){
     return new Promise((resolve, reject) => {
@@ -1036,6 +1093,17 @@ function ImportarTab({webhookUrl}){
     setStep('importing');
     setError('');
     try {
+      // 1. Hacer backup del estado actual de Hoja13 ANTES de importar
+      try{
+        const respBkp = await fetch(HOJA13_CSV_URL);
+        const csvText = await respBkp.text();
+        await makeBackup(csvText, fileName);
+        setBackups(loadBackups());
+      }catch(e){
+        console.warn('Backup fallido, continuando igual:', e);
+      }
+
+      // 2. Importar
       await fetch(webhookUrl, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -1088,6 +1156,11 @@ function ImportarTab({webhookUrl}){
               <div style={{background:'#fef9c3',border:'1px solid #fde047',borderRadius:12,padding:'14px 16px',fontSize:13,color:'#854d0e'}}>
                 ⚠️ <strong>Cómo funciona:</strong> se filtran solo las filas de tipo <strong>Desinstalación</strong>, luego se identifican las que figuran como <strong>Exitoso</strong> en el xlsx y existen en Hoja13 — esas son las que se van a actualizar.
               </div>
+              {backups.length > 0 && (
+                <button onClick={()=>setStep('backups')} style={{marginTop:12,width:'100%',background:'#f1f5f9',color:'#475569',border:'1px solid #e2e8f0',borderRadius:10,padding:'10px',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                  🗂 Ver historial de backups ({backups.length})
+                </button>
+              )}
             </div>
           )}
 
@@ -1205,10 +1278,51 @@ function ImportarTab({webhookUrl}){
                   Revisá el <strong>Registro de ejecución</strong> en Apps Script para ver el detalle exacto.
                 </div>
               </div>
-              <button onClick={()=>{setStep('idle');setExitosas([]);setTodasDesins([]);setMatchExitosos([]);setSheetData(null);setResult(null);setFileName('');setError('');}}
-                style={{width:'100%',background:'#0A2540',color:'#fff',border:'none',borderRadius:12,padding:'13px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
-                Nueva importación
-              </button>
+              <div style={{display:'flex',gap:10}}>
+                <button onClick={()=>{setStep('idle');setExitosas([]);setTodasDesins([]);setMatchExitosos([]);setSheetData(null);setResult(null);setFileName('');setError('');}}
+                  style={{flex:1,background:'#0A2540',color:'#fff',border:'none',borderRadius:12,padding:'13px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  Nueva importación
+                </button>
+                <button onClick={()=>setStep('backups')}
+                  style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:12,padding:'13px 18px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  🗂 Backups
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* BACKUPS */}
+          {step==='backups' && (
+            <div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                <div style={{fontSize:16,fontWeight:800,color:'#0A2540'}}>🗂 Historial de Backups</div>
+                <button onClick={()=>setStep('idle')} style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:8,padding:'6px 14px',fontSize:13,fontWeight:700,cursor:'pointer'}}>← Volver</button>
+              </div>
+              {backups.length === 0 ? (
+                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:12,padding:'32px',textAlign:'center',color:'#94a3b8',fontSize:14}}>
+                  No hay backups guardados aún.<br/>Se generan automáticamente antes de cada importación.
+                </div>
+              ) : (
+                <div style={{border:'1px solid #e2e8f0',borderRadius:12,overflow:'hidden'}}>
+                  {backups.map((bkp,i)=>(
+                    <div key={bkp.id} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:i%2===0?'#f8fafc':'#fff',borderBottom:'1px solid #f1f5f9'}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,color:'#0A2540',fontSize:14}}>📅 {bkp.fecha}</div>
+                        <div style={{fontSize:12,color:'#94a3b8',marginTop:2}}>Antes de importar: <em>{bkp.archivo}</em></div>
+                      </div>
+                      <button
+                        onClick={()=>handleRestore(bkp)}
+                        disabled={restoring}
+                        style={{background:'#fef3c7',color:'#92400e',border:'1px solid #fde68a',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                        ↩ Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{marginTop:12,background:'#fef9c3',border:'1px solid #fde047',borderRadius:10,padding:'12px 14px',fontSize:12,color:'#854d0e'}}>
+                ⚠️ El restore envía el CSV del backup al servidor para sobreescribir Hoja13. Revisá Apps Script para confirmar la ejecución.
+              </div>
             </div>
           )}
 
@@ -1390,7 +1504,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.8</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.9</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
