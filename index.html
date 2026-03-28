@@ -951,11 +951,8 @@ function ImportarTab({webhookUrl}){
   const [error, setError] = React.useState('');
   const [sheetData, setSheetData] = React.useState(null); // datos de Hoja13 cargados via fetch
 
-  // Intentar cargar Hoja13 para hacer el cruce en el cliente
-  // Se carga la URL del sheet desde config (localStorage)
-  const sheetUrl = React.useMemo(()=>{
-    try{ return localStorage.getItem('alleata_sheet')||''; }catch(e){ return ''; }
-  },[]);
+  // URL hardcodeada de Hoja13 como CSV
+  const HOJA13_CSV_URL = 'https://docs.google.com/spreadsheets/d/1PHrJMqAeZamdmZJuCebgPBJd-fGQtdmm/gviz/tq?tqx=out:csv&gid=1843553678';
 
   function readXlsx(file){
     return new Promise((resolve, reject) => {
@@ -996,13 +993,9 @@ function ImportarTab({webhookUrl}){
       setExitosas(exitososNros);
       setTodasDesins(desins);
 
-      // 3. Intentar cargar Hoja13 para cruce cliente-side
-      if(sheetUrl){
-        try{
-          // Convertir URL de Google Sheets a CSV export
-          const csvUrl = sheetUrl.includes('gviz') ? sheetUrl
-            : sheetUrl.replace(/\/edit.*/, '/gviz/tq?tqx=out:csv&sheet=Hoja13');
-          const resp = await fetch(csvUrl);
+      // 3. Cargar Hoja13 para cruce cliente-side
+      try{
+          const resp = await fetch(HOJA13_CSV_URL);
           const text = await resp.text();
           // Parsear CSV simple
           const lines = text.split('\n').filter(Boolean);
@@ -1029,7 +1022,6 @@ function ImportarTab({webhookUrl}){
           setSheetData(null);
           setMatchExitosos([]);
         }
-      }
 
       setStep('preview');
     } catch(err){
@@ -1398,7 +1390,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.7</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.8</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
