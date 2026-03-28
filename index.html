@@ -1128,6 +1128,60 @@ function ImportarTab({webhookUrl}){
   const totalNoExitosos = todasDesins.filter(r=>String(r.Status||'').trim()!=='Exitoso').length;
   const aActualizar = matchExitosos.length;
 
+  // Calcular cambios de estado y proyección de indicadores si tenemos sheetData
+  const cambiosEstado = React.useMemo(()=>{
+    if(!sheetData || !todasDesins.length) return [];
+    const nuevaMap = {};
+    todasDesins.forEach(r=>{
+      const won = String(r.WorkOrderNumber||'').replace(/^0+/,'').trim();
+      nuevaMap[won] = String(r.Status||'').trim();
+    });
+    const conteo = {};
+    sheetData.forEach(({won, status: statusViejo})=>{
+      const statusNuevo = nuevaMap[won];
+      if(statusNuevo && statusNuevo !== statusViejo){
+        const key = statusViejo + '→' + statusNuevo;
+        conteo[key] = (conteo[key]||0) + 1;
+      }
+    });
+    return Object.entries(conteo).map(([k,v])=>{
+      const [de,a] = k.split('→');
+      return {de, a, cant:v};
+    }).sort((x,y)=>y.cant-x.cant);
+  },[sheetData, todasDesins]);
+
+  const proyeccion = React.useMemo(()=>{
+    if(!sheetData || !todasDesins.length) return null;
+    const nuevaMap = {};
+    todasDesins.forEach(r=>{
+      const won = String(r.WorkOrderNumber||'').replace(/^0+/,'').trim();
+      nuevaMap[won] = String(r.Status||'').trim();
+    });
+    // Estado final de cada OT en base
+    const estadoFinal = {};
+    sheetData.forEach(({won, status})=>{
+      estadoFinal[won] = nuevaMap[won] || status;
+    });
+    // Nuevos no exitosos
+    const baseSet = new Set(sheetData.map(r=>r.won));
+    todasDesins.forEach(r=>{
+      const won = String(r.WorkOrderNumber||'').replace(/^0+/,'').trim();
+      const st = String(r.Status||'').trim();
+      if(!baseSet.has(won) && st !== 'Exitoso') estadoFinal[won] = st;
+    });
+    const cnt = {};
+    Object.values(estadoFinal).forEach(s=>{ cnt[s]=(cnt[s]||0)+1; });
+    return cnt;
+  },[sheetData, todasDesins]);
+
+  // KPIs actuales del dashboard
+  const kpisHoy = React.useMemo(()=>{
+    if(!sheetData) return null;
+    const cnt = {};
+    sheetData.forEach(({status})=>{ cnt[status]=(cnt[status]||0)+1; });
+    return cnt;
+  },[sheetData]);
+
   return(
     <div style={{maxWidth:720,margin:'0 auto',padding:'32px 20px'}}>
       <div style={{background:'#fff',borderRadius:20,boxShadow:'0 4px 24px rgba(10,37,64,.08)',overflow:'hidden'}}>
@@ -1222,6 +1276,74 @@ function ImportarTab({webhookUrl}){
                   </div>
                 )}
               </div>
+
+              {/* CAMBIOS DE ESTADO */}
+              {cambiosEstado.length > 0 && (
+                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:14,padding:'18px 20px',marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:800,color:'#0A2540',marginBottom:12}}>🔄 Registros en base con cambio de estado: <span style={{color:'#6366f1'}}>{cambiosEstado.reduce((s,x)=>s+x.cant,0)}</span></div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                    <thead>
+                      <tr style={{borderBottom:'2px solid #e2e8f0'}}>
+                        <th style={{textAlign:'left',padding:'6px 8px',color:'#64748b',fontWeight:700}}>Estado actual (base)</th>
+                        <th style={{textAlign:'left',padding:'6px 8px',color:'#64748b',fontWeight:700}}>→ Nuevo estado (planilla)</th>
+                        <th style={{textAlign:'right',padding:'6px 8px',color:'#64748b',fontWeight:700}}>Cant</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cambiosEstado.map((c,i)=>{
+                        const esExitoso = c.a === 'Exitoso';
+                        return(
+                          <tr key={i} style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td style={{padding:'7px 8px',color:'#374151'}}>{c.de}</td>
+                            <td style={{padding:'7px 8px'}}>
+                              <span style={{fontWeight:700,color:esExitoso?'#16a34a':'#374151'}}>→ {c.a} {esExitoso?'✅':''}</span>
+                            </td>
+                            <td style={{padding:'7px 8px',textAlign:'right',fontWeight:800,color:'#0A2540'}}>{c.cant}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* PROYECCIÓN INDICADORES */}
+              {proyeccion && kpisHoy && (
+                <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:14,padding:'18px 20px',marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:800,color:'#0A2540',marginBottom:12}}>📊 Cómo quedarían los indicadores del dashboard</div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                    <thead>
+                      <tr style={{borderBottom:'2px solid #e2e8f0'}}>
+                        <th style={{textAlign:'left',padding:'6px 8px',color:'#64748b',fontWeight:700}}>Indicador</th>
+                        <th style={{textAlign:'right',padding:'6px 8px',color:'#64748b',fontWeight:700}}>HOY</th>
+                        <th style={{textAlign:'right',padding:'6px 8px',color:'#64748b',fontWeight:700}}>DESPUÉS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        {label:'TOTAL', hoy:sheetData.length, despues:Object.values(proyeccion).reduce((s,v)=>s+v,0), color:'#0A2540'},
+                        {label:'PENDIENTES', hoy:kpisHoy['Pendiente']||0, despues:proyeccion['Pendiente']||0, color:'#f59e0b'},
+                        {label:'EN PROCESO', hoy:kpisHoy['En Proceso']||0, despues:proyeccion['En Proceso']||0, color:'#3b82f6'},
+                        {label:'DESPACHADAS', hoy:kpisHoy['Despachado']||0, despues:proyeccion['Despachado']||0, color:'#8b5cf6'},
+                        {label:'EXITOSAS', hoy:kpisHoy['Exitoso']||0, despues:proyeccion['Exitoso']||0, color:'#10b981'},
+                        {label:'EXTRAVIADAS', hoy:kpisHoy['Extraviada']||0, despues:proyeccion['Extraviada']||0, color:'#ef4444'},
+                      ].map((row,i)=>{
+                        const diff = row.despues - row.hoy;
+                        return(
+                          <tr key={i} style={{borderBottom:'1px solid #f1f5f9'}}>
+                            <td style={{padding:'7px 8px',fontWeight:700,color:row.color}}>{row.label}</td>
+                            <td style={{padding:'7px 8px',textAlign:'right',color:'#64748b'}}>{row.hoy.toLocaleString('es-AR')}</td>
+                            <td style={{padding:'7px 8px',textAlign:'right'}}>
+                              <span style={{fontWeight:900,color:row.color}}>{row.despues.toLocaleString('es-AR')}</span>
+                              {diff !== 0 && <span style={{fontSize:11,marginLeft:6,color:diff>0?'#16a34a':'#ef4444',fontWeight:700}}>{diff>0?'+':''}{diff}</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {/* Botones */}
               <div style={{display:'flex',gap:12}}>
@@ -1504,7 +1626,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.9</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.10</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
