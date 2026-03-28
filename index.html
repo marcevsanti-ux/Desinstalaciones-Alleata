@@ -1346,13 +1346,72 @@ function ImportarTab({webhookUrl}){
               )}
 
               {/* Botones */}
-              <div style={{display:'flex',gap:12}}>
+              <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
                 <button onClick={handleImport}
                   style={{flex:1,background:'#16a34a',color:'#fff',border:'none',borderRadius:12,padding:'14px',fontSize:15,fontWeight:800,cursor:'pointer'}}>
                   ✅ Confirmar importación
                 </button>
+                <button onClick={()=>{
+                  // Exportar informe como xlsx
+                  const wb = XLSX.utils.book_new();
+
+                  // Hoja 1: KPIs
+                  const kpiRows = [
+                    ['INFORME DE IMPORTACIÓN', '', ''],
+                    ['Archivo', fileName, ''],
+                    ['Fecha', new Date().toLocaleString('es-AR'), ''],
+                    ['', '', ''],
+                    ['RESUMEN DEL XLSX', '', ''],
+                    ['Total Desinstalaciones', totalDesinsXlsx, ''],
+                    ['Pendientes (no exitosas)', totalNoExitosos, ''],
+                    ['Exitosas en xlsx', totalExitososDesins, ''],
+                    ['Se marcarían Exitosas en base', aActualizar, ''],
+                  ];
+                  const wsKpi = XLSX.utils.aoa_to_sheet(kpiRows);
+                  XLSX.utils.book_append_sheet(wb, wsKpi, 'Resumen');
+
+                  // Hoja 2: Cambios de estado
+                  if(cambiosEstado.length > 0){
+                    const cambiosRows = [
+                      ['Estado actual (base)', '→ Nuevo estado (planilla)', 'Cantidad'],
+                      ...cambiosEstado.map(c=>[c.de, c.a, c.cant])
+                    ];
+                    const wsCambios = XLSX.utils.aoa_to_sheet(cambiosRows);
+                    XLSX.utils.book_append_sheet(wb, wsCambios, 'Cambios de Estado');
+                  }
+
+                  // Hoja 3: Proyección indicadores
+                  if(proyeccion && kpisHoy){
+                    const proyRows = [
+                      ['Indicador', 'HOY', 'DESPUÉS', 'DIFERENCIA'],
+                      ...([
+                        {label:'TOTAL', hoy:sheetData.length, despues:Object.values(proyeccion).reduce((s,v)=>s+v,0)},
+                        {label:'PENDIENTES', hoy:kpisHoy['Pendiente']||0, despues:proyeccion['Pendiente']||0},
+                        {label:'EN PROCESO', hoy:kpisHoy['En Proceso']||0, despues:proyeccion['En Proceso']||0},
+                        {label:'DESPACHADAS', hoy:kpisHoy['Despachado']||0, despues:proyeccion['Despachado']||0},
+                        {label:'EXITOSAS', hoy:kpisHoy['Exitoso']||0, despues:proyeccion['Exitoso']||0},
+                        {label:'EXTRAVIADAS', hoy:kpisHoy['Extraviada']||0, despues:proyeccion['Extraviada']||0},
+                      ].map(r=>[r.label, r.hoy, r.despues, r.despues - r.hoy]))
+                    ];
+                    const wsProy = XLSX.utils.aoa_to_sheet(proyRows);
+                    XLSX.utils.book_append_sheet(wb, wsProy, 'Proyección Dashboard');
+                  }
+
+                  // Hoja 4: OTs que pasarían a Exitoso
+                  if(matchExitosos.length > 0){
+                    const exitRows = [['WorkOrderNumber'], ...matchExitosos.map(ot=>[ot])];
+                    const wsExit = XLSX.utils.aoa_to_sheet(exitRows);
+                    XLSX.utils.book_append_sheet(wb, wsExit, 'OTs a Exitoso');
+                  }
+
+                  const fecha = new Date().toISOString().slice(0,10);
+                  XLSX.writeFile(wb, `Informe_Importacion_${fecha}.xlsx`);
+                }}
+                  style={{background:'#0A2540',color:'#fff',border:'none',borderRadius:12,padding:'14px 18px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  📥 Exportar informe
+                </button>
                 <button onClick={()=>{setStep('idle');setExitosas([]);setTodasDesins([]);setMatchExitosos([]);setSheetData(null);setFileName('');setError('');}}
-                  style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:12,padding:'14px 20px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  style={{background:'#f1f5f9',color:'#64748b',border:'none',borderRadius:12,padding:'14px 18px',fontSize:14,fontWeight:700,cursor:'pointer'}}>
                   Cancelar
                 </button>
               </div>
@@ -1626,7 +1685,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.10</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.11</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
