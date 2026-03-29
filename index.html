@@ -1139,14 +1139,10 @@ function ImportarTab({webhookUrl}){
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({action:'importDesinstalaciones', rows: rowsParaImportar}),
+        mode: 'no-cors',
       });
-      let actualizadasReal = cambiosEstado.length || '?';
-      try {
-        const respData = await importResp.json();
-        if(respData.actualizadas !== undefined) actualizadasReal = respData.actualizadas;
-      } catch(_){}
       setResult({
-        actualizadas: actualizadasReal,
+        actualizadas: cambiosEstado.length || '?',
         totalXlsx: todasDesins.length,
         totalDesins: todasDesins.length
       });
@@ -1421,7 +1417,7 @@ function ImportarTab({webhookUrl}){
                   ${cambiosEstado.length>0?`<div style="margin-bottom:28px"><div style="font-size:14px;font-weight:800;margin-bottom:10px">🔄 Registros en base con cambio de estado (${cambiosEstado.reduce((s,x)=>s+x.cant,0)})</div><table><thead><tr><th>Estado actual (base)</th><th>→ Nuevo estado (planilla)</th><th>Cantidad</th></tr></thead><tbody>${cambiosRowsHtml}</tbody></table></div>`:''}
                   ${proyeccion&&kpisHoy?`<div style="margin-bottom:28px"><div style="font-size:14px;font-weight:800;margin-bottom:10px">📊 Proyección de indicadores del dashboard</div><table><thead><tr><th>Indicador</th><th>HOY</th><th>DESPUÉS</th></tr></thead><tbody>${proyRowsHtml}</tbody></table></div>`:''}
                   ${matchExitosos.length>0?`<div style="margin-bottom:28px"><div style="font-size:14px;font-weight:800;margin-bottom:10px">✅ OTs que pasarían a Exitoso (${matchExitosos.length})</div><div style="line-height:2">${otsChips}</div></div>`:''}
-                  <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8"><span>Alleata · Sistema de Gestión de Desinstalaciones</span><span>v5.18</span></div>
+                  <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8"><span>Alleata · Sistema de Gestión de Desinstalaciones</span><span>v5.19</span></div>
                   </body></html>`;
                   const w=window.open('','_blank','width=900,height=700');
                   w.document.write(html);w.document.close();w.focus();
@@ -1705,7 +1701,7 @@ function App() {
             <div>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <img src="https://alleata.com.ar/images/Alleata-logo.svg" alt="Alleata" style={{height:30,filter:'brightness(0) invert(1)'}} onError={e=>{e.target.style.display='none';}}/>
-                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.18</span></div>
+                <div style={{fontSize:13,fontWeight:700,color:'#5eead4',borderLeft:'1px solid rgba(255,255,255,.25)',paddingLeft:12,lineHeight:1.4}}>Gestión de Desinstalaciones<br/><span style={{fontSize:10,fontWeight:400,color:'rgba(255,255,255,.6)'}}>Marzo 2026</span><span style={{marginLeft:8,fontSize:10,fontWeight:600,color:'#5eead4',background:'rgba(94,234,212,.15)',borderRadius:6,padding:'1px 7px'}}>v5.19</span></div>
               </div>
               <div style={{fontSize:11,marginTop:4,display:'flex',alignItems:'center',gap:8}}>
                 <span style={{display:'inline-block',width:7,height:7,borderRadius:'50%',flexShrink:0,
